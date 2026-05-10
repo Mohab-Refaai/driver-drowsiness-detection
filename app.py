@@ -539,8 +539,8 @@ def check_alerts(detections):
 st.markdown('<div class="sec-label">// Upload Images</div>', unsafe_allow_html=True)
 
 uploaded_files = st.file_uploader(
-    "drop images",
-    type=["jpg","jpeg","png"],
+    label="",
+    type=["jpg", "jpeg", "png"],
     accept_multiple_files=True,
     label_visibility="collapsed",
 )
