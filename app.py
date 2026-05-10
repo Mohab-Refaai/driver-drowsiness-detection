@@ -609,13 +609,27 @@ def load_model():
 # ─────────────────────────────────────────────
 def run_inference(image: Image.Image, conf_threshold: float = 0.25) -> dict:
     model = load_model()
+    # First try with the user threshold
     results = model.predict(image, imgsz=640, conf=conf_threshold, verbose=False)
     boxes = results[0].boxes
     if boxes is not None and len(boxes):
-        cls  = int(boxes.cls[0].item())
-        conf = float(boxes.conf[0].item())
+        # Pick the box with highest confidence
+        confs = boxes.conf
+        best_idx = int(confs.argmax().item())
+        cls  = int(boxes.cls[best_idx].item())
+        conf = float(boxes.conf[best_idx].item())
         return {"class": CLASS_NAMES[cls], "confidence": conf}
-    return {"class": "SafeDriving", "confidence": 0.5}
+    # Fallback: run with very low threshold to still get best guess
+    results2 = model.predict(image, imgsz=640, conf=0.01, verbose=False)
+    boxes2 = results2[0].boxes
+    if boxes2 is not None and len(boxes2):
+        confs2 = boxes2.conf
+        best_idx2 = int(confs2.argmax().item())
+        cls  = int(boxes2.cls[best_idx2].item())
+        conf = float(boxes2.conf[best_idx2].item())
+        return {"class": CLASS_NAMES[cls], "confidence": conf, "below_threshold": True}
+    # Truly no detection at all
+    return {"class": "SafeDriving", "confidence": 0.0, "below_threshold": True}
 
 
 # ─────────────────────────────────────────────
@@ -760,22 +774,27 @@ if st.session_state.show_results and st.session_state.predictions:
         # ── Prediction card ──
         with col_pred:
             st.markdown('<div class="result-pair-label">🤖 PREDICTION</div>', unsafe_allow_html=True)
-            st.markdown(f"""
-            <div class="pred-card" style="--accent-color:{meta['color']}">
-                <div class="pred-icon">{meta['icon']}</div>
-                <div class="pred-filename">{p['filename'][:30]}{'…' if len(p['filename'])>30 else ''}</div>
-                <div class="pred-class-name">{p['class']}</div>
-                <div class="pred-confidence">
-                    Confidence: {conf_pct}%
-                </div>
-                <span class="status-badge badge-{'safe' if meta['level']=='safe' else 'warning' if meta['level']=='caution' else 'danger'}">
-                    ● {meta['label']}
-                </span>
-                <div class="pred-bar-bg">
-                    <div class="pred-bar-fill" style="width:{conf_pct}%"></div>
-                </div>
-            </div>
-            """, unsafe_allow_html=True)
+            below = p.get("below_threshold", False)
+            low_conf_badge = (
+                '<div style="margin-top:0.5rem;font-family:\'Share Tech Mono\',monospace;'
+                'font-size:0.65rem;color:#ff8c42;letter-spacing:0.08em;">'
+                '⚠ BELOW THRESHOLD — LOW CONFIDENCE</div>'
+            ) if below else ""
+            st.markdown(
+                '<div class="pred-card" style="--accent-color:' + meta["color"] + ('opacity:0.7;' if below else '') + '">'
+                '<div class="pred-icon">' + meta["icon"] + '</div>'
+                '<div class="pred-filename">' + p["filename"][:30] + ('…' if len(p["filename"]) > 30 else '') + '</div>'
+                '<div class="pred-class-name">' + p["class"] + '</div>'
+                '<div class="pred-confidence">Confidence: ' + str(conf_pct) + '%</div>'
+                '<span class="status-badge badge-' + ('safe' if meta['level']=='safe' else 'warning' if meta['level']=='caution' else 'danger') + '">'
+                '● ' + meta["label"] + '</span>'
+                + low_conf_badge +
+                '<div class="pred-bar-bg">'
+                '<div class="pred-bar-fill" style="width:' + str(conf_pct) + '%"></div>'
+                '</div>'
+                '</div>',
+                unsafe_allow_html=True,
+            )
 
         st.markdown('<hr style="margin:1rem 0 1.5rem !important; opacity:0.3;">', unsafe_allow_html=True)
 
