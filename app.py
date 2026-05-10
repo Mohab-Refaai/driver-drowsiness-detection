@@ -23,24 +23,53 @@ CLASS_NAMES = [
     "Yawn"
 ]
 
-COLORS_BGR = {
-    "DangerousDriving": (56,  56,  255),
-    "Distracted":       (0,   165, 255),
-    "Drinking":         (255, 56,  56),
-    "SafeDriving":      (56,  200, 56),
-    "SleepyDriving":    (200, 0,   200),
-    "Yawn":             (200, 200, 56),
+CLASS_INFO = {
+    "DangerousDriving": {
+        "ar": "قيادة خطرة",
+        "desc": "تجاوز السرعة أو التغيير المفاجئ للمسارات",
+        "icon": "⚡",
+        "level": "CRITICAL",
+        "color_bgr": (56, 56, 255),
+    },
+    "Distracted": {
+        "ar": "قيادة مشتتة",
+        "desc": "استخدام الهاتف أو الأكل أو التحدث",
+        "icon": "📵",
+        "level": "WARNING",
+        "color_bgr": (0, 165, 255),
+    },
+    "Drinking": {
+        "ar": "شرب أثناء القيادة",
+        "desc": "تناول المشروبات الكحولية خلف المقود",
+        "icon": "🚫",
+        "level": "CRITICAL",
+        "color_bgr": (255, 56, 56),
+    },
+    "SafeDriving": {
+        "ar": "قيادة آمنة",
+        "desc": "التزام بقواعد الطريق والمسافة الآمنة",
+        "icon": "✅",
+        "level": "SAFE",
+        "color_bgr": (56, 200, 56),
+    },
+    "SleepyDriving": {
+        "ar": "قيادة نعسان",
+        "desc": "علامات النعاس والإرهاق خلف المقود",
+        "icon": "😴",
+        "level": "CRITICAL",
+        "color_bgr": (200, 0, 200),
+    },
+    "Yawn": {
+        "ar": "تثاؤب",
+        "desc": "التثاؤب مؤشر على التعب وضعف الانتباه",
+        "icon": "🥱",
+        "level": "WARNING",
+        "color_bgr": (200, 200, 56),
+    },
 }
 
-ALERT_CONFIG = {
-    "DangerousDriving": {"level": "CRITICAL"},
-    "SleepyDriving":    {"level": "CRITICAL"},
-    "Yawn":             {"level": "WARNING"},
-    "Distracted":       {"level": "WARNING"},
-    "Drinking":         {"level": "CRITICAL"},
-    "SafeDriving":      {"level": "SAFE"},
-}
-
+ALERT_CONFIG    = {k: {"level": v["level"]} for k, v in CLASS_INFO.items()}
+COLORS_BGR      = {k: v["color_bgr"] for k, v in CLASS_INFO.items()}
 DANGER_CLASSES  = ["DangerousDriving", "SleepyDriving", "Drinking"]
 WARNING_CLASSES = ["Distracted", "Yawn"]
 MODEL_PATH      = "best.pt"
@@ -49,382 +78,298 @@ MODEL_PATH      = "best.pt"
 # PAGE CONFIG
 # ==========================================
 st.set_page_config(
-    page_title="Driver Drowsiness Detection",
-    page_icon="🚗",
+    page_title="Driver Safety Monitor",
+    page_icon="🛡️",
     layout="wide",
 )
 
 # ==========================================
-# CSS — Cinematic Dark
+# CSS
 # ==========================================
 st.markdown("""
 <style>
-@import url('https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Inter:wght@300;400;500;600&family=JetBrains+Mono:wght@400;500&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Syne:wght@400;600;700;800&family=DM+Mono:wght@400;500&family=DM+Sans:wght@300;400;500&display=swap');
 
 *, html, body, [class*="css"] {
-    font-family: 'Inter', sans-serif !important;
+    font-family: 'DM Sans', sans-serif !important;
 }
-
 .stApp {
-    background: #080a0e;
-    color: #9aa3b2;
+    background: #0b1120;
+    color: #94a3b8;
 }
 header[data-testid="stHeader"] { background: transparent; }
 
 /* ── Hero ── */
-.hero {
-    padding: 4rem 0 3rem;
-    text-align: center;
-    position: relative;
-}
-.hero-glow {
-    position: absolute;
-    top: 0; left: 50%; transform: translateX(-50%);
-    width: 500px; height: 200px;
-    background: radial-gradient(ellipse, rgba(220,38,38,0.07) 0%, transparent 70%);
+.hero { padding: 3.5rem 0 2rem; position: relative; overflow: hidden; }
+.hero-bg-line {
+    position: absolute; top:0; left:0; right:0; bottom:0;
+    background:
+        linear-gradient(90deg, transparent 49.5%, rgba(251,191,36,0.03) 49.5%,
+            rgba(251,191,36,0.03) 50.5%, transparent 50.5%),
+        linear-gradient(0deg, transparent 0%, rgba(14,165,233,0.02) 50%, transparent 100%);
     pointer-events: none;
 }
-.hero-eyebrow {
-    font-family: 'JetBrains Mono', monospace !important;
-    font-size: 0.65rem;
-    font-weight: 500;
-    letter-spacing: 4px;
-    text-transform: uppercase;
-    color: #dc2626;
-    margin-bottom: 1rem;
-    display: block;
+.hero-inner { position: relative; z-index: 1; }
+.hero-chip {
+    display: inline-block;
+    background: rgba(251,191,36,0.08);
+    border: 1px solid rgba(251,191,36,0.2);
+    color: #fbbf24;
+    font-family: 'DM Mono', monospace !important;
+    font-size: 0.6rem; letter-spacing: 3px; text-transform: uppercase;
+    padding: 4px 12px; border-radius: 2px; margin-bottom: 1.5rem;
 }
 .hero-title {
-    font-family: 'Bebas Neue', sans-serif !important;
-    font-size: clamp(3.5rem, 8vw, 6.5rem);
-    font-weight: 400;
-    color: #f5f6f8;
-    line-height: 0.92;
-    letter-spacing: 2px;
-    margin: 0 0 1.2rem;
+    font-family: 'Syne', sans-serif !important;
+    font-size: clamp(2.8rem, 7vw, 5.5rem);
+    font-weight: 800; color: #f1f5f9;
+    line-height: 1; letter-spacing: -1px; margin: 0 0 0.5rem;
 }
-.hero-title em {
-    font-style: normal;
-    color: #dc2626;
+.hero-title .accent  { color: #0ea5e9; }
+.hero-title .accent2 { color: #fbbf24; }
+.hero-divider {
+    width: 48px; height: 3px;
+    background: linear-gradient(90deg, #0ea5e9, #fbbf24);
+    border-radius: 2px; margin: 1rem 0;
 }
-.hero-sub {
-    font-size: 0.88rem;
-    color: #4b5563;
-    font-weight: 400;
-    letter-spacing: 0.3px;
-}
+.hero-sub { font-size: 0.9rem; color: #475569; max-width: 480px; }
 
 /* ── Section label ── */
 .sec-label {
-    font-family: 'JetBrains Mono', monospace !important;
-    font-size: 0.6rem;
-    font-weight: 500;
-    letter-spacing: 3px;
-    text-transform: uppercase;
-    color: #374151;
-    margin-bottom: 0.8rem;
-    margin-top: 2rem;
+    font-family: 'DM Mono', monospace !important;
+    font-size: 0.58rem; font-weight: 500; letter-spacing: 3px;
+    text-transform: uppercase; color: #1e3a5f;
+    margin-bottom: 0.8rem; margin-top: 2rem;
+    display: flex; align-items: center; gap: 8px;
+}
+.sec-label::before {
+    content: ''; display: inline-block;
+    width: 16px; height: 1px; background: #0ea5e9;
 }
 
-/* ── Upload ── */
-[data-testid="stFileUploader"] {
-    background: #0c0f16;
-    border: 1px solid #161c28;
+/* ── Class cards ── */
+.class-grid {
+    display: grid; grid-template-columns: repeat(3, 1fr);
+    gap: 8px; margin-bottom: 1.5rem;
+}
+.class-card {
+    background: #0d1829; border: 1px solid #0f2040;
+    border-radius: 8px; padding: 0.9rem 1rem;
+    position: relative; overflow: hidden;
+}
+.class-card::before {
+    content: ''; position: absolute;
+    left:0; top:0; bottom:0; width:3px;
+}
+.class-card.critical::before { background: #ef4444; }
+.class-card.warning::before  { background: #fbbf24; }
+.class-card.safe::before     { background: #22c55e; }
+.cc-icon  { font-size: 1.3rem; margin-bottom: 0.4rem; }
+.cc-en    { font-family: 'DM Mono', monospace !important; font-size: 0.62rem; color: #334155; margin-bottom: 2px; }
+.cc-ar    { font-family: 'Syne', sans-serif !important; font-size: 0.9rem; font-weight: 700; color: #e2e8f0; margin-bottom: 4px; }
+.cc-desc  { font-size: 0.72rem; color: #334155; line-height: 1.4; }
+
+/* ── Upload area ── */
+.upload-box {
+    background: #0d1829;
+    border: 1px dashed #0f2040;
     border-radius: 10px;
-    padding: 0.4rem;
+    padding: 1.8rem;
+    text-align: center;
+    margin-bottom: 8px;
+}
+.upload-box-icon { font-size: 2rem; margin-bottom: 8px; }
+.upload-box-text {
+    font-family: 'DM Mono', monospace !important;
+    font-size: 0.65rem; color: #1e3a5f;
+    letter-spacing: 2px; text-transform: uppercase;
+}
+.upload-box-sub {
+    font-family: 'DM Mono', monospace !important;
+    font-size: 0.55rem; color: #0f2040;
+    margin-top: 4px; letter-spacing: 1px;
 }
 
-/* Hide the dropzone instructions text */
+/* ── Hide native uploader chrome, keep functional ── */
+[data-testid="stFileUploader"] > div {
+    background: transparent !important;
+    border: none !important;
+    padding: 0 !important;
+}
+[data-testid="stFileUploaderDropzone"] {
+    background: transparent !important;
+    border: none !important;
+    padding: 4px 0 !important;
+    min-height: unset !important;
+}
 [data-testid="stFileUploaderDropzoneInstructions"] {
     display: none !important;
 }
-
-/* Hide duplicate button — keep only the first one */
-[data-testid="stFileUploaderDropzone"] button:not(:first-of-type) {
+/* Kill ALL dropzone buttons then show only first */
+[data-testid="stFileUploaderDropzone"] button {
     display: none !important;
 }
-
-/* Style the single upload button */
-[data-testid="stFileUploaderDropzone"] {
-    display: flex !important;
-    align-items: center !important;
-    justify-content: center !important;
-    padding: 1rem !important;
-    min-height: 56px !important;
+[data-testid="stFileUploaderDropzone"] button:first-of-type {
+    display: inline-flex !important;
+    background: #0d1829 !important;
+    color: #0ea5e9 !important;
+    border: 1px solid #0f2040 !important;
+    border-radius: 6px !important;
+    font-family: 'DM Mono', monospace !important;
+    font-size: 0.72rem !important;
+    letter-spacing: 1px !important;
+    padding: 0.45rem 1.4rem !important;
+    cursor: pointer !important;
+    transition: all 0.15s !important;
 }
-
-[data-testid="stFileUploaderDropzone"] button {
-    min-width: 140px !important;
-    background: #0c0f16 !important;
-    color: #4b5563 !important;
-    border: 1px solid #161c28 !important;
-    border-radius: 5px !important;
-    font-family: 'JetBrains Mono', monospace !important;
-    font-weight: 500 !important;
-    font-size: 0.75rem !important;
-    letter-spacing: 1.5px !important;
-    text-transform: uppercase !important;
-    padding: 0.45rem 1.1rem !important;
-}
-
-[data-testid="stFileUploaderDropzone"] button:hover {
-    border-color: #dc2626 !important;
-    color: #dc2626 !important;
+[data-testid="stFileUploaderDropzone"] button:first-of-type:hover {
+    border-color: #0ea5e9 !important;
+    background: #0f2040 !important;
 }
 
 /* ── Buttons ── */
 .stButton > button {
-    background: #0c0f16 !important;
-    color: #4b5563 !important;
-    border: 1px solid #161c28 !important;
-    border-radius: 5px !important;
-    font-family: 'JetBrains Mono', monospace !important;
-    font-weight: 500 !important;
-    font-size: 0.75rem !important;
-    letter-spacing: 1.5px !important;
-    text-transform: uppercase !important;
-    padding: 0.45rem 1.1rem !important;
+    background: #0d1829 !important; color: #475569 !important;
+    border: 1px solid #0f2040 !important; border-radius: 6px !important;
+    font-family: 'DM Mono', monospace !important;
+    font-size: 0.72rem !important; letter-spacing: 1.5px !important;
+    text-transform: uppercase !important; padding: 0.5rem 1.2rem !important;
     transition: all 0.15s ease !important;
 }
 .stButton > button:hover {
-    background: #161c28 !important;
-    border-color: #dc2626 !important;
-    color: #dc2626 !important;
+    background: #0f2040 !important;
+    border-color: #0ea5e9 !important; color: #0ea5e9 !important;
 }
+
+/* ── Divider ── */
+.div-line { border:none; border-top:1px solid #0f1e35; margin:2.5rem 0; }
 
 /* ── Result card ── */
 .r-card {
-    background: #0c0f16;
-    border: 1px solid #161c28;
-    border-radius: 10px;
-    padding: 1.2rem 1.4rem;
-    margin-bottom: 0.8rem;
+    background: #0d1829; border: 1px solid #0f2040;
+    border-radius: 10px; padding: 1.2rem 1.4rem; margin-bottom: 0.8rem;
 }
 .r-filename {
-    font-family: 'JetBrains Mono', monospace !important;
-    font-size: 0.65rem;
-    color: #374151;
-    margin-bottom: 0.8rem;
-    letter-spacing: 0.5px;
+    font-family: 'DM Mono', monospace !important;
+    font-size: 0.62rem; color: #1e3a5f; margin-bottom: 0.8rem;
 }
 .img-lbl {
-    font-family: 'JetBrains Mono', monospace !important;
-    font-size: 0.55rem;
-    font-weight: 500;
-    letter-spacing: 3px;
-    text-transform: uppercase;
-    color: #1f2937;
-    margin-bottom: 5px;
+    font-family: 'DM Mono', monospace !important;
+    font-size: 0.52rem; letter-spacing: 3px;
+    text-transform: uppercase; color: #1e3a5f; margin-bottom: 5px;
 }
 
 /* ── Badges ── */
 .badge-critical {
-    display: inline-block;
-    background: rgba(220,38,38,0.1);
-    color: #f87171;
-    border: 1px solid rgba(220,38,38,0.2);
-    border-radius: 3px;
-    padding: 2px 8px;
-    font-family: 'JetBrains Mono', monospace !important;
-    font-size: 0.65rem;
-    font-weight: 500;
-    letter-spacing: 0.5px;
+    display:inline-block; background:rgba(239,68,68,0.08);
+    color:#f87171; border:1px solid rgba(239,68,68,0.18);
+    border-radius:3px; padding:2px 8px;
+    font-family:'DM Mono',monospace !important; font-size:0.62rem;
 }
 .badge-warning {
-    display: inline-block;
-    background: rgba(234,179,8,0.1);
-    color: #fbbf24;
-    border: 1px solid rgba(234,179,8,0.2);
-    border-radius: 3px;
-    padding: 2px 8px;
-    font-family: 'JetBrains Mono', monospace !important;
-    font-size: 0.65rem;
-    font-weight: 500;
-    letter-spacing: 0.5px;
+    display:inline-block; background:rgba(251,191,36,0.08);
+    color:#fbbf24; border:1px solid rgba(251,191,36,0.18);
+    border-radius:3px; padding:2px 8px;
+    font-family:'DM Mono',monospace !important; font-size:0.62rem;
 }
 .badge-safe {
-    display: inline-block;
-    background: rgba(34,197,94,0.1);
-    color: #4ade80;
-    border: 1px solid rgba(34,197,94,0.2);
-    border-radius: 3px;
-    padding: 2px 8px;
-    font-family: 'JetBrains Mono', monospace !important;
-    font-size: 0.65rem;
-    font-weight: 500;
-    letter-spacing: 0.5px;
+    display:inline-block; background:rgba(34,197,94,0.08);
+    color:#4ade80; border:1px solid rgba(34,197,94,0.18);
+    border-radius:3px; padding:2px 8px;
+    font-family:'DM Mono',monospace !important; font-size:0.62rem;
 }
 
 /* ── Detection rows ── */
 .det-row {
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    padding: 5px 0;
-    border-bottom: 1px solid #0f131c;
+    display:flex; align-items:center; justify-content:space-between;
+    padding:5px 0; border-bottom:1px solid #0a1525;
 }
-.det-row:last-child { border-bottom: none; }
-.det-conf {
-    font-family: 'JetBrains Mono', monospace !important;
-    color: #2d3748;
-    font-size: 0.7rem;
-}
-.no-det {
-    font-family: 'JetBrains Mono', monospace !important;
-    font-size: 0.65rem;
-    color: #1f2937;
-    letter-spacing: 0.5px;
-}
+.det-row:last-child { border-bottom:none; }
+.det-conf { font-family:'DM Mono',monospace !important; color:#1e3a5f; font-size:0.68rem; }
+.no-det { font-family:'DM Mono',monospace !important; font-size:0.62rem; color:#1e3a5f; }
 
-/* ── Alert inline ── */
+/* ── Alerts ── */
 .alert-crit {
-    background: rgba(220,38,38,0.06);
-    border-left: 2px solid #dc2626;
-    border-radius: 4px;
-    padding: 5px 8px;
-    margin: 3px 0;
-    color: #f87171;
-    font-size: 0.72rem;
-    font-weight: 500;
-    font-family: 'JetBrains Mono', monospace !important;
+    background:rgba(239,68,68,0.05); border-left:2px solid #ef4444;
+    border-radius:4px; padding:5px 8px; margin:3px 0;
+    color:#f87171; font-size:0.7rem;
+    font-family:'DM Mono',monospace !important;
 }
 .alert-warn {
-    background: rgba(234,179,8,0.06);
-    border-left: 2px solid #eab308;
-    border-radius: 4px;
-    padding: 5px 8px;
-    margin: 3px 0;
-    color: #fbbf24;
-    font-size: 0.72rem;
-    font-weight: 500;
-    font-family: 'JetBrains Mono', monospace !important;
-}
-
-/* ── Divider ── */
-.div-line {
-    border: none;
-    border-top: 1px solid #0f131c;
-    margin: 2.5rem 0;
+    background:rgba(251,191,36,0.05); border-left:2px solid #fbbf24;
+    border-radius:4px; padding:5px 8px; margin:3px 0;
+    color:#fbbf24; font-size:0.7rem;
+    font-family:'DM Mono',monospace !important;
 }
 
 /* ── Report ── */
 .report-title {
-    font-family: 'Bebas Neue', sans-serif !important;
-    font-size: 3.5rem;
-    color: #f5f6f8;
-    letter-spacing: 3px;
-    line-height: 1;
-    margin-bottom: 0.3rem;
+    font-family:'Syne',sans-serif !important;
+    font-size:3rem; font-weight:800; color:#f1f5f9;
+    letter-spacing:-1px; line-height:1; margin-bottom:0.3rem;
 }
 .report-sub {
-    font-family: 'JetBrains Mono', monospace !important;
-    font-size: 0.62rem;
-    color: #374151;
-    letter-spacing: 2px;
-    text-transform: uppercase;
+    font-family:'DM Mono',monospace !important;
+    font-size:0.6rem; color:#1e3a5f; letter-spacing:2px; text-transform:uppercase;
 }
-
-/* ── Score ── */
-.score-wrap {
-    text-align: center;
-    padding: 1.5rem 0;
-}
+.score-wrap { text-align:center; padding:1.5rem 0; }
 .score-num {
-    font-family: 'Bebas Neue', sans-serif !important;
-    font-size: 6rem;
-    line-height: 1;
-    letter-spacing: 2px;
+    font-family:'Syne',sans-serif !important;
+    font-size:5.5rem; font-weight:800; line-height:1; letter-spacing:-2px;
 }
 .score-denom {
-    font-family: 'JetBrains Mono', monospace !important;
-    font-size: 0.62rem;
-    color: #374151;
-    letter-spacing: 2px;
-    margin-top: 4px;
-    text-transform: uppercase;
+    font-family:'DM Mono',monospace !important;
+    font-size:0.6rem; color:#1e3a5f; letter-spacing:2px;
+    margin-top:4px; text-transform:uppercase;
 }
-
-/* ── Metric box ── */
 .mbox {
-    background: #0c0f16;
-    border: 1px solid #161c28;
-    border-radius: 8px;
-    padding: 0.9rem 0.8rem;
-    text-align: center;
+    background:#0d1829; border:1px solid #0f2040;
+    border-radius:8px; padding:0.9rem 0.8rem; text-align:center;
 }
 .mval {
-    font-family: 'Bebas Neue', sans-serif !important;
-    font-size: 2.4rem;
-    line-height: 1;
-    letter-spacing: 1px;
-    margin-bottom: 4px;
+    font-family:'Syne',sans-serif !important;
+    font-size:2.2rem; font-weight:800; line-height:1;
+    letter-spacing:-1px; margin-bottom:4px;
 }
 .mlbl {
-    font-family: 'JetBrains Mono', monospace !important;
-    font-size: 0.55rem;
-    font-weight: 500;
-    letter-spacing: 2px;
-    text-transform: uppercase;
-    color: #374151;
+    font-family:'DM Mono',monospace !important;
+    font-size:0.52rem; letter-spacing:2px;
+    text-transform:uppercase; color:#1e3a5f;
 }
-
-/* ── Verdict ── */
 .verdict {
-    font-family: 'Bebas Neue', sans-serif !important;
-    text-align: center;
-    font-size: 1rem;
-    letter-spacing: 4px;
-    padding: 0.6rem 1.5rem;
-    border-radius: 5px;
-    margin: 1rem auto;
-    max-width: 260px;
-    display: block;
+    font-family:'Syne',sans-serif !important;
+    text-align:center; font-size:0.95rem; font-weight:700;
+    letter-spacing:3px; padding:0.6rem 1.5rem; border-radius:6px;
+    margin:1rem auto; max-width:260px; display:block; text-transform:uppercase;
 }
-.v-safe     { background: rgba(34,197,94,0.07); color: #4ade80; border: 1px solid rgba(34,197,94,0.15); }
-.v-warning  { background: rgba(234,179,8,0.07); color: #fbbf24; border: 1px solid rgba(234,179,8,0.15); }
-.v-critical { background: rgba(220,38,38,0.07); color: #f87171; border: 1px solid rgba(220,38,38,0.15); }
+.v-safe     { background:rgba(34,197,94,0.06);  color:#4ade80; border:1px solid rgba(34,197,94,0.12); }
+.v-warning  { background:rgba(251,191,36,0.06); color:#fbbf24; border:1px solid rgba(251,191,36,0.12); }
+.v-critical { background:rgba(239,68,68,0.06);  color:#f87171; border:1px solid rgba(239,68,68,0.12); }
 
 /* ── Timeline ── */
 .tl-wrap {
-    background: #0c0f16;
-    border: 1px solid #161c28;
-    border-radius: 8px;
-    padding: 0.8rem 1rem;
+    background:#0d1829; border:1px solid #0f2040;
+    border-radius:8px; padding:0.8rem 1rem;
 }
 .tl-item {
-    display: flex;
-    align-items: flex-start;
-    gap: 10px;
-    padding: 7px 0;
-    border-bottom: 1px solid #0f131c;
+    display:flex; align-items:flex-start; gap:10px;
+    padding:7px 0; border-bottom:1px solid #0a1525;
 }
-.tl-item:last-child { border-bottom: none; }
-.tl-dot-c { width:7px; height:7px; background:#dc2626; border-radius:50%; margin-top:5px; flex-shrink:0; }
-.tl-dot-w { width:7px; height:7px; background:#eab308; border-radius:50%; margin-top:5px; flex-shrink:0; }
-.tl-cls { font-weight:600; font-size:0.78rem; color:#9aa3b2; letter-spacing:0.3px; }
-.tl-meta {
-    font-family: 'JetBrains Mono', monospace !important;
-    font-size: 0.62rem;
-    color: #374151;
-    margin-top: 1px;
-}
+.tl-item:last-child { border-bottom:none; }
+.tl-dot-c { width:7px;height:7px;background:#ef4444;border-radius:50%;margin-top:5px;flex-shrink:0; }
+.tl-dot-w { width:7px;height:7px;background:#fbbf24;border-radius:50%;margin-top:5px;flex-shrink:0; }
+.tl-cls { font-weight:600; font-size:0.78rem; color:#94a3b8; }
+.tl-meta { font-family:'DM Mono',monospace !important; font-size:0.6rem; color:#1e3a5f; margin-top:1px; }
 
 /* ── Sidebar ── */
-[data-testid="stSidebar"] {
-    background: #080a0e !important;
-    border-right: 1px solid #0f131c;
-}
-[data-testid="stSidebar"] * { color: #4b5563; }
+[data-testid="stSidebar"] { background:#080e1a !important; border-right:1px solid #0a1525; }
+[data-testid="stSidebar"] * { color:#334155; }
 
 /* ── Footer ── */
 .footer {
-    text-align: center;
-    font-family: 'JetBrains Mono', monospace !important;
-    color: #0f131c;
-    font-size: 0.62rem;
-    padding: 3rem 0 1rem;
-    letter-spacing: 2px;
-    text-transform: uppercase;
+    text-align:center; font-family:'DM Mono',monospace !important;
+    color:#0a1525; font-size:0.6rem; padding:3rem 0 1rem;
+    letter-spacing:2px; text-transform:uppercase;
 }
 </style>
 """, unsafe_allow_html=True)
@@ -434,12 +379,36 @@ header[data-testid="stHeader"] { background: transparent; }
 # ==========================================
 st.markdown("""
 <div class="hero">
-    <div class="hero-glow"></div>
-    <span class="hero-eyebrow">// AI Safety System</span>
-    <div class="hero-title">Driver<br><em>Drowsiness</em><br>Detection</div>
-    <p class="hero-sub">Upload driver images — the model analyzes behavior and flags risks.</p>
+    <div class="hero-bg-line"></div>
+    <div class="hero-inner">
+        <div class="hero-chip">🛡️ AI Safety System · YOLO11s</div>
+        <div class="hero-title">
+            Driver<br><span class="accent">Safety</span> <span class="accent2">Monitor</span>
+        </div>
+        <div class="hero-divider"></div>
+        <p class="hero-sub">رفع صور السائق — النظام يحلل السلوك ويكتشف المخاطر تلقائياً</p>
+    </div>
 </div>
 """, unsafe_allow_html=True)
+
+# ==========================================
+# CLASS CARDS
+# ==========================================
+st.markdown('<div class="sec-label">Classes — ما يكتشفه النظام</div>', unsafe_allow_html=True)
+
+st.markdown('<div class="class-grid">', unsafe_allow_html=True)
+for name, info in CLASS_INFO.items():
+    lvl_cls = "critical" if info["level"] == "CRITICAL" else \
+              "warning"  if info["level"] == "WARNING"  else "safe"
+    st.markdown(f"""
+    <div class="class-card {lvl_cls}">
+        <div class="cc-icon">{info['icon']}</div>
+        <div class="cc-en">{name}</div>
+        <div class="cc-ar">{info['ar']}</div>
+        <div class="cc-desc">{info['desc']}</div>
+    </div>
+    """, unsafe_allow_html=True)
+st.markdown('</div>', unsafe_allow_html=True)
 
 # ==========================================
 # SIDEBAR
@@ -447,38 +416,39 @@ st.markdown("""
 with st.sidebar:
     st.markdown("""
     <div style='padding:1.5rem 0 1rem;'>
-        <div style='font-family:"JetBrains Mono",monospace;font-size:0.58rem;letter-spacing:3px;
-                    text-transform:uppercase;color:#1f2937;margin-bottom:1.2rem;'>// Settings</div>
+        <div style='font-family:"DM Mono",monospace;font-size:0.58rem;letter-spacing:3px;
+                    text-transform:uppercase;color:#1e3a5f;margin-bottom:1.2rem;'>// Settings</div>
     </div>
     """, unsafe_allow_html=True)
 
     conf_threshold = st.slider(
         "Confidence Threshold", 0.10, 1.00, 0.15, 0.05,
-        help="Lower = more detections. Recommended: 0.15–0.25"
+        help="كلما قل — زادت الاكتشافات. يُنصح: 0.15–0.25"
     )
 
-    st.markdown("<hr style='border-color:#0f131c;margin:1.2rem 0'>", unsafe_allow_html=True)
+    st.markdown("<hr style='border-color:#0a1525;margin:1.2rem 0'>", unsafe_allow_html=True)
     st.markdown("""
-    <div style='font-family:"JetBrains Mono",monospace;font-size:0.58rem;letter-spacing:3px;
-                text-transform:uppercase;color:#1f2937;margin-bottom:1rem;'>// Classes</div>
+    <div style='font-family:"DM Mono",monospace;font-size:0.58rem;letter-spacing:3px;
+                text-transform:uppercase;color:#1e3a5f;margin-bottom:1rem;'>// Levels</div>
     """, unsafe_allow_html=True)
 
-    legend_items = [
-        ("DangerousDriving", "badge-critical"),
-        ("SleepyDriving",    "badge-critical"),
-        ("Drinking",         "badge-critical"),
-        ("Distracted",       "badge-warning"),
-        ("Yawn",             "badge-warning"),
-        ("SafeDriving",      "badge-safe"),
-    ]
-    for name, cls in legend_items:
-        st.markdown(f'<div style="margin-bottom:7px"><span class="{cls}">{name}</span></div>',
-                    unsafe_allow_html=True)
+    for lvl, cls, names in [
+        ("CRITICAL", "badge-critical", "DangerousDriving · SleepyDriving · Drinking"),
+        ("WARNING",  "badge-warning",  "Distracted · Yawn"),
+        ("SAFE",     "badge-safe",     "SafeDriving"),
+    ]:
+        st.markdown(f"""
+        <div style="margin-bottom:12px">
+            <span class="{cls}">{lvl}</span>
+            <div style="font-family:'DM Mono',monospace;font-size:0.52rem;color:#1e3a5f;
+                        margin-top:4px;">{names}</div>
+        </div>
+        """, unsafe_allow_html=True)
 
-    st.markdown("<hr style='border-color:#0f131c;margin:1.2rem 0'>", unsafe_allow_html=True)
+    st.markdown("<hr style='border-color:#0a1525;margin:1.2rem 0'>", unsafe_allow_html=True)
     st.markdown("""
-    <div style='font-family:"JetBrains Mono",monospace;color:#1f2937;
-                font-size:0.58rem;letter-spacing:1.5px;'>YOLO11s · v1.0</div>
+    <div style='font-family:"DM Mono",monospace;color:#1e3a5f;
+                font-size:0.52rem;letter-spacing:1.5px;'>MODEL: YOLO11s · v1.0</div>
     """, unsafe_allow_html=True)
 
 # ==========================================
@@ -502,7 +472,6 @@ def detect(frame, conf):
     boxes      = results[0].boxes
     output     = frame.copy()
     detections = []
-
     if boxes is not None:
         for box in boxes:
             cls_id       = int(box.cls[0].item())
@@ -532,25 +501,19 @@ for key, default in [
 def check_alerts(detections):
     detected_now = [d[0] for d in detections]
     alerts = []
-
     for name in CLASS_NAMES:
         if name not in detected_now:
             st.session_state.counts[name] = 0
-
     for name, conf in detections:
         level = ALERT_CONFIG[name]["level"]
         if level == "SAFE":
             continue
-
         st.session_state.counts[name] += 1
-
         if st.session_state.counts[name] >= 1:
             now = time.time()
             if now - st.session_state.last_alert.get(name, 0) > 2:
                 alert = {
-                    "timestamp":  now,
-                    "class":      name,
-                    "level":      level,
+                    "timestamp":  now, "class": name, "level": level,
                     "confidence": conf,
                     "time_str":   datetime.now().strftime("%H:%M:%S"),
                 }
@@ -562,7 +525,16 @@ def check_alerts(detections):
 # ==========================================
 # UPLOAD
 # ==========================================
-st.markdown('<div class="sec-label">// Upload Images</div>', unsafe_allow_html=True)
+st.markdown("<div class='div-line'></div>", unsafe_allow_html=True)
+st.markdown('<div class="sec-label">Upload — رفع الصور</div>', unsafe_allow_html=True)
+
+st.markdown("""
+<div class="upload-box">
+    <div class="upload-box-icon">📂</div>
+    <div class="upload-box-text">اسحب الصور هنا أو اضغط Browse</div>
+    <div class="upload-box-sub">JPG · JPEG · PNG</div>
+</div>
+""", unsafe_allow_html=True)
 
 uploaded_files = st.file_uploader(
     label="",
@@ -573,26 +545,25 @@ uploaded_files = st.file_uploader(
 
 col_a, col_b, _ = st.columns([1, 1, 6])
 with col_a:
-    analyze_btn = st.button("ANALYZE", use_container_width=True)
+    analyze_btn = st.button("▶ ANALYZE", use_container_width=True)
 with col_b:
-    clear_btn   = st.button("CLEAR", use_container_width=True)
+    clear_btn   = st.button("✕ CLEAR",   use_container_width=True)
 
 if clear_btn:
-    st.session_state.alert_log   = []
-    st.session_state.counts      = {n: 0 for n in CLASS_NAMES}
-    st.session_state.last_alert  = {}
-    st.session_state.results     = []
+    st.session_state.alert_log  = []
+    st.session_state.counts     = {n: 0 for n in CLASS_NAMES}
+    st.session_state.last_alert = {}
+    st.session_state.results    = []
     st.rerun()
 
 # ==========================================
-# RUN ANALYSIS
+# ANALYSIS
 # ==========================================
 if analyze_btn and uploaded_files:
     st.session_state.results    = []
     st.session_state.alert_log  = []
     st.session_state.counts     = {n: 0 for n in CLASS_NAMES}
     st.session_state.last_alert = {}
-
     progress = st.progress(0)
     for i, f in enumerate(uploaded_files):
         img       = Image.open(f).convert("RGB")
@@ -601,29 +572,24 @@ if analyze_btn and uploaded_files:
         out_rgb   = cv2.cvtColor(out_frame, cv2.COLOR_BGR2RGB)
         alerts    = check_alerts(dets)
         st.session_state.results.append({
-            "name":       f.name,
-            "original":   img,
-            "output":     out_rgb,
-            "detections": dets,
-            "alerts":     alerts,
+            "name": f.name, "original": img,
+            "output": out_rgb, "detections": dets, "alerts": alerts,
         })
         progress.progress((i+1)/len(uploaded_files))
     progress.empty()
-
 elif analyze_btn:
-    st.warning("Upload at least one image first.")
+    st.warning("ارفع صورة واحدة على الأقل أولاً.")
 
 # ==========================================
 # RESULTS
 # ==========================================
 if st.session_state.results:
     st.markdown("<div class='div-line'></div>", unsafe_allow_html=True)
-    st.markdown('<div class="sec-label">// Detection Results</div>', unsafe_allow_html=True)
+    st.markdown('<div class="sec-label">Results — نتائج الفحص</div>', unsafe_allow_html=True)
 
     for res in st.session_state.results:
         st.markdown('<div class="r-card">', unsafe_allow_html=True)
         st.markdown(f"<div class='r-filename'>📎 {res['name']}</div>", unsafe_allow_html=True)
-
         c1, c2, c3 = st.columns([2, 2, 1.3])
         with c1:
             st.markdown("<div class='img-lbl'>Original</div>", unsafe_allow_html=True)
@@ -647,13 +613,12 @@ if st.session_state.results:
                         unsafe_allow_html=True
                     )
             else:
-                st.markdown("<div class='no-det'>— no detections —</div>", unsafe_allow_html=True)
-
+                st.markdown("<div class='no-det'>— لا يوجد اكتشافات —</div>", unsafe_allow_html=True)
             if res["alerts"]:
                 st.markdown("<div style='height:8px'></div>", unsafe_allow_html=True)
                 for alert in res["alerts"]:
                     css = "alert-crit" if alert["level"] == "CRITICAL" else "alert-warn"
-                    ico = "!" if alert["level"] == "CRITICAL" else "~"
+                    ico = "⚠" if alert["level"] == "CRITICAL" else "~"
                     st.markdown(f'<div class="{css}">[{ico}] {alert["class"]}</div>',
                                 unsafe_allow_html=True)
         st.markdown("</div>", unsafe_allow_html=True)
@@ -670,25 +635,21 @@ if st.session_state.alert_log:
     warning  = sum(1 for a in log if a["level"] == "WARNING")
     score    = max(0, 100 - critical * 10 - warning * 4)
 
-    v_text  = "SAFE DRIVER"      if score >= 85 else \
-              "NEEDS ATTENTION"  if score >= 60 else \
-              "DANGEROUS DRIVER"
+    v_text  = "SAFE DRIVER"     if score >= 85 else \
+              "NEEDS ATTENTION" if score >= 60 else "DANGEROUS DRIVER"
     v_emoji = "✓" if score >= 85 else "!" if score >= 60 else "✕"
     v_cls   = "v-safe" if score >= 85 else "v-warning" if score >= 60 else "v-critical"
     s_color = "#4ade80" if score >= 85 else "#fbbf24" if score >= 60 else "#f87171"
 
-    # Header
     st.markdown(f"""
     <div style='margin-bottom:2rem;'>
-        <div class='sec-label' style='margin-top:0;'>// Session Report</div>
+        <div class='sec-label' style='margin-top:0;'>Report — تقرير الجلسة</div>
         <div class='report-title'>Safety<br>Analysis</div>
         <div class='report-sub'>{datetime.now().strftime("%Y · %m · %d — %H:%M:%S")} · {len(st.session_state.results)} frame(s)</div>
     </div>
     """, unsafe_allow_html=True)
 
-    # Score + metrics
     col_score, col_right = st.columns([1, 2.2])
-
     with col_score:
         st.markdown(f"""
         <div class='score-wrap'>
@@ -701,94 +662,84 @@ if st.session_state.alert_log:
     with col_right:
         r1c1, r1c2, r1c3, r1c4 = st.columns(4)
         for col, val, lbl, clr in [
-            (r1c1, len(log),      "Total",    "#9aa3b2"),
+            (r1c1, len(log),      "Total",    "#94a3b8"),
             (r1c2, critical,      "Critical", "#f87171"),
             (r1c3, warning,       "Warnings", "#fbbf24"),
-            (r1c4, len(st.session_state.results), "Frames", "#374151"),
+            (r1c4, len(st.session_state.results), "Frames", "#1e3a5f"),
         ]:
             with col:
                 st.markdown(
-                    f'<div class="mbox">'
-                    f'<div class="mval" style="color:{clr}">{val}</div>'
-                    f'<div class="mlbl">{lbl}</div>'
-                    f'</div>',
+                    f'<div class="mbox"><div class="mval" style="color:{clr}">{val}</div>'
+                    f'<div class="mlbl">{lbl}</div></div>',
                     unsafe_allow_html=True
                 )
 
         st.markdown("<div style='height:0.6rem'></div>", unsafe_allow_html=True)
         cls_cols = st.columns(len(CLASS_NAMES))
         for col, cls_name in zip(cls_cols, CLASS_NAMES):
-            cnt   = counts.get(cls_name, 0)
-            level = ALERT_CONFIG[cls_name]["level"]
-            clr   = "#f87171" if level == "CRITICAL" else \
-                    "#fbbf24" if level == "WARNING"  else "#374151"
+            cnt  = counts.get(cls_name, 0)
+            info = CLASS_INFO[cls_name]
+            clr  = "#f87171" if info["level"] == "CRITICAL" else \
+                   "#fbbf24" if info["level"] == "WARNING"  else "#1e3a5f"
             with col:
                 st.markdown(
                     f'<div class="mbox" style="padding:0.6rem 0.4rem">'
-                    f'<div class="mval" style="color:{clr};font-size:1.6rem">{cnt}</div>'
-                    f'<div class="mlbl" style="font-size:0.48rem">{cls_name}</div>'
+                    f'<div style="font-size:1rem;margin-bottom:2px">{info["icon"]}</div>'
+                    f'<div class="mval" style="color:{clr};font-size:1.5rem">{cnt}</div>'
+                    f'<div class="mlbl" style="font-size:0.44rem">{info["ar"]}</div>'
                     f'</div>',
                     unsafe_allow_html=True
                 )
 
     st.markdown("<div style='height:1.5rem'></div>", unsafe_allow_html=True)
 
-    # Chart + Timeline
     if counts:
         col_chart, col_tl = st.columns([1.3, 1])
-
         with col_chart:
-            st.markdown('<div class="sec-label" style="margin-top:0">// Alert Breakdown</div>',
+            st.markdown('<div class="sec-label" style="margin-top:0">Alert Breakdown</div>',
                         unsafe_allow_html=True)
             fig, ax = plt.subplots(figsize=(5, max(2, len(counts) * 0.75)))
-            fig.patch.set_facecolor("#0c0f16")
-            ax.set_facecolor("#0c0f16")
-
-            clrs = ["#dc2626" if c in DANGER_CLASSES else
-                    "#eab308" if c in WARNING_CLASSES else
+            fig.patch.set_facecolor("#0d1829")
+            ax.set_facecolor("#0d1829")
+            clrs = ["#ef4444" if c in DANGER_CLASSES else
+                    "#fbbf24" if c in WARNING_CLASSES else
                     "#22c55e" for c in counts.keys()]
-
             bars = ax.barh(list(counts.keys()), list(counts.values()),
                            color=clrs, height=0.42, edgecolor="none")
-
-            ax.set_xlabel("Alerts", color="#374151", fontsize=7,
-                          fontfamily="monospace")
-            ax.tick_params(colors="#374151", labelsize=7)
+            ax.set_xlabel("Alerts", color="#1e3a5f", fontsize=7, fontfamily="monospace")
+            ax.tick_params(colors="#1e3a5f", labelsize=7)
             for spine in ax.spines.values():
-                spine.set_color("#0f131c")
-            ax.xaxis.grid(True, color="#0f131c", zorder=0,
-                          linestyle="--", linewidth=0.5)
+                spine.set_color("#0a1525")
+            ax.xaxis.grid(True, color="#0a1525", zorder=0, linestyle="--", linewidth=0.5)
             ax.set_axisbelow(True)
-
             for bar, val in zip(bars, counts.values()):
                 ax.text(val + 0.05, bar.get_y() + bar.get_height()/2,
-                        str(val), va='center', color="#4b5563",
+                        str(val), va='center', color="#334155",
                         fontsize=7, fontfamily="monospace")
-
             plt.tight_layout(pad=0.8)
             st.pyplot(fig)
             plt.close()
 
         with col_tl:
-            st.markdown('<div class="sec-label" style="margin-top:0">// Alert Log</div>',
+            st.markdown('<div class="sec-label" style="margin-top:0">Alert Log</div>',
                         unsafe_allow_html=True)
             st.markdown('<div class="tl-wrap">', unsafe_allow_html=True)
             for alert in log[-12:]:
                 dot = "tl-dot-c" if alert["level"] == "CRITICAL" else "tl-dot-w"
                 t   = alert.get("time_str", "—")
                 c   = f"{alert['confidence']:.0%}"
+                ico = CLASS_INFO[alert["class"]]["icon"]
                 st.markdown(f"""
                 <div class="tl-item">
                     <div class="{dot}"></div>
                     <div>
-                        <div class="tl-cls">{alert['class']}</div>
+                        <div class="tl-cls">{ico} {alert['class']}</div>
                         <div class="tl-meta">{t}  ·  conf {c}  ·  {alert['level']}</div>
                     </div>
                 </div>
                 """, unsafe_allow_html=True)
             st.markdown("</div>", unsafe_allow_html=True)
 
-    # Download
     st.markdown("<div style='height:1.2rem'></div>", unsafe_allow_html=True)
     report_data = {
         "generated_at":    datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
@@ -809,14 +760,14 @@ if st.session_state.alert_log:
     col_dl, col_clr, _ = st.columns([1.3, 1.1, 5])
     with col_dl:
         st.download_button(
-            label="DOWNLOAD REPORT",
+            label="⬇ DOWNLOAD REPORT",
             data=json.dumps(report_data, indent=4),
             file_name=f"driver_report_{datetime.now().strftime('%Y%m%d_%H%M%S')}.json",
             mime="application/json",
             use_container_width=True,
         )
     with col_clr:
-        if st.button("CLEAR REPORT", use_container_width=True):
+        if st.button("✕ CLEAR REPORT", use_container_width=True):
             st.session_state.alert_log  = []
             st.session_state.counts     = {n: 0 for n in CLASS_NAMES}
             st.session_state.last_alert = {}
@@ -827,9 +778,13 @@ elif st.session_state.results:
     st.markdown("<div class='div-line'></div>", unsafe_allow_html=True)
     st.markdown("""
     <div style='text-align:center;padding:3rem 0;'>
-        <div style='font-family:"Bebas Neue",sans-serif;font-size:3rem;color:#4ade80;letter-spacing:3px;'>ALL CLEAR</div>
-        <div style='font-family:"JetBrains Mono",monospace;font-size:0.65rem;color:#374151;
-                    letter-spacing:2px;margin-top:0.5rem;text-transform:uppercase;'>No dangerous behavior detected</div>
+        <div style='font-size:3rem;margin-bottom:0.5rem;'>✅</div>
+        <div style='font-family:"Syne",sans-serif;font-size:2.5rem;font-weight:800;
+                    color:#4ade80;letter-spacing:-1px;'>ALL CLEAR</div>
+        <div style='font-family:"DM Mono",monospace;font-size:0.62rem;color:#1e3a5f;
+                    letter-spacing:2px;margin-top:0.5rem;text-transform:uppercase;'>
+            لا يوجد سلوك خطير
+        </div>
     </div>
     """, unsafe_allow_html=True)
 
@@ -837,6 +792,6 @@ elif st.session_state.results:
 # FOOTER
 # ==========================================
 st.markdown(
-    "<div class='footer'>Driver Drowsiness Detection · YOLO11s · Streamlit</div>",
+    "<div class='footer'>Driver Safety Monitor · YOLO11s · Streamlit · 2025</div>",
     unsafe_allow_html=True
 )
