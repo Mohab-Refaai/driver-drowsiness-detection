@@ -608,28 +608,45 @@ def load_model():
 #  REAL INFERENCE  (uses sidebar threshold)
 # ─────────────────────────────────────────────
 def run_inference(image: Image.Image, conf_threshold: float = 0.35) -> dict:
+    import numpy as np
     model = load_model()
+
     # First try with the user threshold
     results = model.predict(image, imgsz=640, conf=conf_threshold, verbose=False)
     boxes = results[0].boxes
+
     if boxes is not None and len(boxes):
-        # Pick the box with highest confidence
-        confs = boxes.conf
+        confs    = boxes.conf
         best_idx = int(confs.argmax().item())
-        cls  = int(boxes.cls[best_idx].item())
-        conf = float(boxes.conf[best_idx].item())
-        return {"class": CLASS_NAMES[cls], "confidence": conf}
+        cls      = int(boxes.cls[best_idx].item())
+        conf     = float(boxes.conf[best_idx].item())
+        # Draw bounding box using YOLO's built-in plot
+        annotated = results[0].plot(
+            line_width=2,
+            font_size=12,
+            labels=True,
+            conf=True,
+        )
+        annotated_pil = Image.fromarray(annotated[..., ::-1])  # BGR→RGB
+        return {"class": CLASS_NAMES[cls], "confidence": conf,
+                "annotated": annotated_pil, "below_threshold": False}
+
     # Fallback: run with very low threshold to still get best guess
     results2 = model.predict(image, imgsz=640, conf=0.01, verbose=False)
-    boxes2 = results2[0].boxes
+    boxes2   = results2[0].boxes
     if boxes2 is not None and len(boxes2):
-        confs2 = boxes2.conf
+        confs2   = boxes2.conf
         best_idx2 = int(confs2.argmax().item())
-        cls  = int(boxes2.cls[best_idx2].item())
-        conf = float(boxes2.conf[best_idx2].item())
-        return {"class": CLASS_NAMES[cls], "confidence": conf, "below_threshold": True}
-    # Truly no detection at all
-    return {"class": "SafeDriving", "confidence": 0.0, "below_threshold": True}
+        cls      = int(boxes2.cls[best_idx2].item())
+        conf     = float(boxes2.conf[best_idx2].item())
+        annotated = results2[0].plot(line_width=2, font_size=12, labels=True, conf=True)
+        annotated_pil = Image.fromarray(annotated[..., ::-1])
+        return {"class": CLASS_NAMES[cls], "confidence": conf,
+                "annotated": annotated_pil, "below_threshold": True}
+
+    # Truly no detection
+    return {"class": "SafeDriving", "confidence": 0.0,
+            "annotated": image, "below_threshold": True}
 
 
 # ─────────────────────────────────────────────
@@ -729,9 +746,11 @@ if uploaded_files:
                 result = run_inference(img, conf_threshold=threshold)
                 preds.append({
                     "filename": f.name,
-                    "image": img,
-                    "class": result["class"],
+                    "image":    img,
+                    "annotated": result.get("annotated", img),
+                    "class":    result["class"],
                     "confidence": result["confidence"],
+                    "below_threshold": result.get("below_threshold", False),
                 })
         st.session_state.predictions = preds
         st.session_state.show_results = True
@@ -771,9 +790,17 @@ if st.session_state.show_results and st.session_state.predictions:
                 unsafe_allow_html=True,
             )
 
-        # ── Prediction card ──
+        # ── Prediction column: bounding box image + card ──
         with col_pred:
-            st.markdown('<div class="result-pair-label">🤖 PREDICTION</div>', unsafe_allow_html=True)
+            st.markdown('<div class="result-pair-label">🤖 PREDICTION · BOUNDING BOX</div>', unsafe_allow_html=True)
+
+            # Annotated image with bbox on top
+            st.markdown('<div class="img-card-wrap" style="border-color:' + meta["color"] + '55;'
+                        'box-shadow:0 0 20px ' + meta["color"] + '22;">', unsafe_allow_html=True)
+            st.image(p["annotated"], use_container_width=True)
+            st.markdown('</div>', unsafe_allow_html=True)
+
+            # Prediction info card below the image
             below = p.get("below_threshold", False)
             low_conf_badge = (
                 '<div style="margin-top:0.5rem;font-family:\'Share Tech Mono\',monospace;'
@@ -781,16 +808,19 @@ if st.session_state.show_results and st.session_state.predictions:
                 '⚠ BELOW THRESHOLD — LOW CONFIDENCE</div>'
             ) if below else ""
             st.markdown(
-                '<div class="pred-card" style="--accent-color:' + meta["color"] + ('opacity:0.7;' if below else '') + '">'
-                '<div class="pred-icon">' + meta["icon"] + '</div>'
-                '<div class="pred-filename">' + p["filename"][:30] + ('…' if len(p["filename"]) > 30 else '') + '</div>'
-                '<div class="pred-class-name">' + p["class"] + '</div>'
-                '<div class="pred-confidence">Confidence: ' + str(conf_pct) + '%</div>'
+                '<div style="background:rgba(10,22,40,0.8);border:1px solid ' + meta["color"] + '44;'
+                'border-radius:10px;padding:0.75rem 1rem;margin-top:0.5rem;">'
+                '<div style="font-family:\'Bebas Neue\',sans-serif;font-size:1.6rem;'
+                'letter-spacing:0.1em;color:' + meta["color"] + ';'
+                'filter:drop-shadow(0 0 12px ' + meta["color"] + '88);">' + p["class"] + '</div>'
+                '<div style="font-family:\'Share Tech Mono\',monospace;font-size:0.85rem;color:#6a8faf;">'
+                'Confidence: ' + str(conf_pct) + '%</div>'
                 '<span class="status-badge badge-' + ('safe' if meta['level']=='safe' else 'warning' if meta['level']=='caution' else 'danger') + '">'
                 '● ' + meta["label"] + '</span>'
                 + low_conf_badge +
-                '<div class="pred-bar-bg">'
-                '<div class="pred-bar-fill" style="width:' + str(conf_pct) + '%"></div>'
+                '<div class="pred-bar-bg" style="margin-top:0.5rem;">'
+                '<div class="pred-bar-fill" style="width:' + str(conf_pct) + '%;background:' + meta["color"] + ';'
+                'box-shadow:0 0 8px ' + meta["color"] + ';"></div>'
                 '</div>'
                 '</div>',
                 unsafe_allow_html=True,
