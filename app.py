@@ -578,7 +578,7 @@ with st.sidebar:
         "Confidence Threshold",
         min_value=0.10,
         max_value=0.95,
-        value=0.25,
+        value=0.35,
         step=0.05,
         format="%.2f",
         label_visibility="collapsed",
@@ -607,7 +607,7 @@ def load_model():
 # ─────────────────────────────────────────────
 #  REAL INFERENCE  (uses sidebar threshold)
 # ─────────────────────────────────────────────
-def run_inference(image: Image.Image, conf_threshold: float = 0.25) -> dict:
+def run_inference(image: Image.Image, conf_threshold: float = 0.35) -> dict:
     model = load_model()
     # First try with the user threshold
     results = model.predict(image, imgsz=640, conf=conf_threshold, verbose=False)
