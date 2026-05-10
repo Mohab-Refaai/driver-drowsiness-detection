@@ -134,16 +134,42 @@ header[data-testid="stHeader"] { background: transparent; }
     padding: 0.4rem;
 }
 
-/* Hide duplicated upload text */
+/* Hide the dropzone instructions text */
 [data-testid="stFileUploaderDropzoneInstructions"] {
     display: none !important;
 }
 
-/* Fix upload button position */
+/* Hide duplicate button — keep only the first one */
+[data-testid="stFileUploaderDropzone"] button:not(:first-of-type) {
+    display: none !important;
+}
+
+/* Style the single upload button */
+[data-testid="stFileUploaderDropzone"] {
+    display: flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+    padding: 1rem !important;
+    min-height: 56px !important;
+}
+
 [data-testid="stFileUploaderDropzone"] button {
-    min-width: 120px !important;
-    margin-left: 12px !important;
-    margin-top: 4px !important;
+    min-width: 140px !important;
+    background: #0c0f16 !important;
+    color: #4b5563 !important;
+    border: 1px solid #161c28 !important;
+    border-radius: 5px !important;
+    font-family: 'JetBrains Mono', monospace !important;
+    font-weight: 500 !important;
+    font-size: 0.75rem !important;
+    letter-spacing: 1.5px !important;
+    text-transform: uppercase !important;
+    padding: 0.45rem 1.1rem !important;
+}
+
+[data-testid="stFileUploaderDropzone"] button:hover {
+    border-color: #dc2626 !important;
+    color: #dc2626 !important;
 }
 
 /* ── Buttons ── */
