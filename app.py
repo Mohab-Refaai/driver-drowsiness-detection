@@ -625,6 +625,8 @@ if "predictions" not in st.session_state:
     st.session_state.predictions = []
 if "show_results" not in st.session_state:
     st.session_state.show_results = False
+if "uploader_key" not in st.session_state:
+    st.session_state.uploader_key = 0
 
 
 # ─────────────────────────────────────────────
@@ -652,10 +654,11 @@ st.markdown("""
 """, unsafe_allow_html=True)
 
 uploaded_files = st.file_uploader(
-    "upload_hidden",                    # kept but hidden via CSS
+    "upload_hidden",
     type=["jpg", "jpeg", "png", "webp"],
     accept_multiple_files=True,
-    label_visibility="hidden",          # hides the label → no duplicate text
+    label_visibility="hidden",
+    key=f"uploader_{st.session_state.uploader_key}",
 )
 st.markdown('</div>', unsafe_allow_html=True)
 
@@ -671,17 +674,20 @@ if uploaded_files:
     </div>
     """, unsafe_allow_html=True)
 
-    cols = st.columns(min(len(uploaded_files), 4))
+    # Always one row, up to 7 cols, small thumbnails
+    n_cols = min(len(uploaded_files), 7)
+    cols = st.columns(n_cols)
     for i, f in enumerate(uploaded_files):
-        with cols[i % 4]:
+        with cols[i % n_cols]:
             img = Image.open(f)
             st.markdown('<div class="img-card-wrap">', unsafe_allow_html=True)
             st.image(img, use_container_width=True)
             st.markdown('</div>', unsafe_allow_html=True)
             st.markdown(
-                f'<p style="font-family:\'Share Tech Mono\',monospace;font-size:0.65rem;'
-                f'color:#4a6fa5;text-align:center;margin-top:0.3rem;letter-spacing:0.05em;">'
-                f'{f.name[:28]}{"…" if len(f.name)>28 else ""}</p>',
+                f'<p style="font-family:\'Share Tech Mono\',monospace;font-size:0.55rem;'
+                f'color:#4a6fa5;text-align:center;margin-top:0.25rem;letter-spacing:0.03em;'
+                f'overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">'
+                f'{f.name[:16]}{"…" if len(f.name)>16 else ""}</p>',
                 unsafe_allow_html=True,
             )
 
@@ -694,11 +700,11 @@ if uploaded_files:
         analyze = st.button("⬡  ANALYZE FRAMES", use_container_width=True)
 
     with col_b:
-        if st.session_state.show_results:
-            if st.button("✕  CLEAR ALL", use_container_width=True):
-                st.session_state.predictions = []
-                st.session_state.show_results = False
-                st.rerun()
+        if st.button("✕  CLEAR ALL", use_container_width=True):
+            st.session_state.predictions = []
+            st.session_state.show_results = False
+            st.session_state.uploader_key += 1   # resets the file uploader widget
+            st.rerun()
 
     # ── RUN INFERENCE ────────────────────────────
     if analyze:
@@ -850,6 +856,40 @@ if st.session_state.show_results and st.session_state.predictions:
         '</div>',
         unsafe_allow_html=True,
     )
+
+    # ── Class breakdown ──
+    st.markdown("""
+    <div style="margin-top:1.5rem;padding-top:1.25rem;border-top:1px solid rgba(62,207,175,0.1);">
+        <div style="font-family:'Share Tech Mono',monospace;font-size:0.65rem;letter-spacing:0.25em;
+                    color:#4a6fa5;text-transform:uppercase;margin-bottom:1rem;">
+            ▸ DETECTIONS PER CLASS
+        </div>
+    </div>
+    """, unsafe_allow_html=True)
+
+    cls_cols = st.columns(len(CLASS_NAMES))
+    for col_el, cls_name in zip(cls_cols, CLASS_NAMES):
+        cnt   = class_counts.get(cls_name, 0)
+        meta  = CLASS_META[cls_name]
+        c     = meta["color"]
+        ico   = meta["icon"]
+        pct   = int(cnt / total * 100) if total > 0 else 0
+        opacity = "1" if cnt > 0 else "0.3"
+        with col_el:
+            st.markdown(
+                '<div class="dash-metric" style="opacity:' + opacity + ';border-left:3px solid ' + c + ';">'
+                '<div style="font-size:2rem;margin-bottom:0.2rem;">' + ico + '</div>'
+                '<div class="dash-metric-value" style="font-size:2rem;color:' + c + ';'
+                'filter:drop-shadow(0 0 12px ' + c + '88)">' + str(cnt) + '</div>'
+                '<div class="dash-metric-label">' + cls_name.replace("Driving", " Drv") + '</div>'
+                '<div style="background:rgba(255,255,255,0.05);border-radius:3px;height:3px;margin-top:0.5rem;overflow:hidden;">'
+                '<div style="width:' + str(pct) + '%;height:100%;background:' + c + ';border-radius:3px;'
+                'box-shadow:0 0 6px ' + c + ';"></div>'
+                '</div>'
+                '<div style="font-family:\'Share Tech Mono\',monospace;font-size:0.6rem;color:#4a6fa5;margin-top:0.3rem;">' + str(pct) + '%</div>'
+                '</div>',
+                unsafe_allow_html=True,
+            )
 
 elif not uploaded_files:
     # Empty state
