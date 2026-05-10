@@ -133,8 +133,17 @@ header[data-testid="stHeader"] { background: transparent; }
     border-radius: 10px;
     padding: 0.4rem;
 }
-[data-testid="stFileUploaderDropzoneInstructions"] div span:first-child {
-    display: none;
+
+/* Hide duplicated upload text */
+[data-testid="stFileUploaderDropzoneInstructions"] {
+    display: none !important;
+}
+
+/* Fix upload button position */
+[data-testid="stFileUploaderDropzone"] button {
+    min-width: 120px !important;
+    margin-left: 12px !important;
+    margin-top: 4px !important;
 }
 
 /* ── Buttons ── */
