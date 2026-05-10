@@ -511,32 +511,32 @@ CLASS_DESCRIPTIONS = {
     "DangerousDriving": {
         "color": "#ff4646",
         "icon": "⚡",
-        "desc": "Gray-scale images capturing reckless or hazardous driving behavior, such as speeding or erratic lane changes."
+        "desc": "السائق بيقود بشكل متهور أو عدواني، زي السرعة الزائدة أو التغيير المفاجئ في المسارات."
     },
     "Distracted": {
         "color": "#ffbe3c",
         "icon": "👁",
-        "desc": "Instances where the driver's attention is diverted away from the road, possibly due to smartphone usage, eating, or interacting with passengers."
+        "desc": "السائق مش مركز على الطريق، ممكن يكون بيتكلم في التليفون أو بياكل أو بيتكلم مع حد جنبه."
     },
     "Drinking": {
         "color": "#ff8c42",
         "icon": "🥤",
-        "desc": "Gray-scale images depicting drivers consuming alcoholic beverages while behind the wheel, highlighting the dangers of driving under the influence."
+        "desc": "السائق بيشرب أثناء القيادة، سواء مشروب كحولي أو حتى أي مشروب تاني بيشتت انتباهه."
     },
     "SafeDriving": {
         "color": "#3ecfaf",
         "icon": "✅",
-        "desc": "Examples of responsible and cautious driving behavior in gray-scale, including obeying traffic laws, maintaining safe distances, and using turn signals."
+        "desc": "السائق مركز ومش بيعمل أي حاجة خطرة، إيده على الدركسيون وعينيه على الطريق."
     },
     "SleepyDriving": {
         "color": "#b46fff",
         "icon": "😴",
-        "desc": "Instances where drivers exhibit signs of drowsiness or fatigue, posing a significant risk of accidents due to reduced alertness, depicted in gray-scale."
+        "desc": "السائق تعبان أو بيتنعس، وده من أخطر الحاجات على الطريق لأن ردود فعله بتبطأ."
     },
     "Yawn": {
         "color": "#ffbe3c",
         "icon": "🥱",
-        "desc": "Gray-scale images capturing drivers in the act of yawning, often indicative of fatigue or tiredness, which can impair driving performance."
+        "desc": "السائق بيتثاءب، وده علامة إن جسمه محتاج راحة وممكن يكون مقدمة للنعاس."
     },
 }
 
