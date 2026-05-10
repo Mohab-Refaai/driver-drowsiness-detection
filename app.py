@@ -511,32 +511,32 @@ CLASS_DESCRIPTIONS = {
     "DangerousDriving": {
         "color": "#ff4646",
         "icon": "⚡",
-        "desc": "السائق بيقود بشكل متهور أو عدواني، زي السرعة الزائدة أو التغيير المفاجئ في المسارات."
+        "desc": "Driver is behaving aggressively or recklessly — think sudden lane cuts, tailgating, or dangerously high speeds."
     },
     "Distracted": {
         "color": "#ffbe3c",
         "icon": "👁",
-        "desc": "السائق مش مركز على الطريق، ممكن يكون بيتكلم في التليفون أو بياكل أو بيتكلم مع حد جنبه."
+        "desc": "Driver's attention is off the road — could be on a phone, talking to a passenger, eating, or anything pulling focus away from driving."
     },
     "Drinking": {
         "color": "#ff8c42",
         "icon": "🥤",
-        "desc": "السائق بيشرب أثناء القيادة، سواء مشروب كحولي أو حتى أي مشروب تاني بيشتت انتباهه."
+        "desc": "Driver is consuming a drink while behind the wheel, which takes at least one hand off and diverts attention from the road."
     },
     "SafeDriving": {
         "color": "#3ecfaf",
         "icon": "✅",
-        "desc": "السائق مركز ومش بيعمل أي حاجة خطرة، إيده على الدركسيون وعينيه على الطريق."
+        "desc": "Driver is focused, hands on the wheel, eyes on the road — no risky behaviour detected."
     },
     "SleepyDriving": {
         "color": "#b46fff",
         "icon": "😴",
-        "desc": "السائق تعبان أو بيتنعس، وده من أخطر الحاجات على الطريق لأن ردود فعله بتبطأ."
+        "desc": "Driver is showing signs of fatigue or drowsiness — one of the most dangerous states on the road as reaction time drops significantly."
     },
     "Yawn": {
         "color": "#ffbe3c",
         "icon": "🥱",
-        "desc": "السائق بيتثاءب، وده علامة إن جسمه محتاج راحة وممكن يكون مقدمة للنعاس."
+        "desc": "Driver is yawning, which is usually an early warning sign of tiredness and can lead to drowsy driving if ignored."
     },
 }
 
