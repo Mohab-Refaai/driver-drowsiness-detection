@@ -674,11 +674,11 @@ if uploaded_files:
     </div>
     """, unsafe_allow_html=True)
 
-    # Always one row, up to 7 cols, small thumbnails
-    n_cols = min(len(uploaded_files), 7)
-    cols = st.columns(n_cols)
+    # Always 7 columns — images stay small regardless of count
+    THUMB_COLS = 7
+    cols = st.columns(THUMB_COLS)
     for i, f in enumerate(uploaded_files):
-        with cols[i % n_cols]:
+        with cols[i % THUMB_COLS]:
             img = Image.open(f)
             st.markdown('<div class="img-card-wrap">', unsafe_allow_html=True)
             st.image(img, use_container_width=True)
