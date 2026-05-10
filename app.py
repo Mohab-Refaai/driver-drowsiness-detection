@@ -38,7 +38,7 @@ ALERT_CONFIG = {
     "Yawn":             {"level": "WARNING"},
     "Distracted":       {"level": "WARNING"},
     "Drinking":         {"level": "CRITICAL"},
-    "SafeDriving":      {"level": "SAFE"},      # ← SAFE = لا يطلع alert أبداً
+    "SafeDriving":      {"level": "SAFE"},
 }
 
 DANGER_CLASSES  = ["DangerousDriving", "SleepyDriving", "Drinking"]
@@ -59,241 +59,351 @@ st.set_page_config(
 # ==========================================
 st.markdown("""
 <style>
-@import url('https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;600&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Syne:wght@400;500;600;700;800&family=DM+Mono:wght@400;500&display=swap');
 
 *, html, body, [class*="css"] {
-    font-family: 'Space Grotesk', sans-serif !important;
+    font-family: 'Syne', sans-serif !important;
 }
 
-.stApp { background-color: #080b12; color: #dde1ea; }
-
+.stApp { background-color: #07090f; color: #c8cdd8; }
 header[data-testid="stHeader"] { background: transparent; }
+
+/* ── Hide default Streamlit file uploader label duplication ── */
+[data-testid="stFileUploaderDropzoneInstructions"] div span:first-child {
+    display: none;
+}
 
 /* ── Hero ── */
 .hero {
-    padding: 3.5rem 0 2.5rem;
+    padding: 3rem 0 2rem;
     text-align: center;
-    position: relative;
-}
-.hero::before {
-    content: '';
-    position: absolute;
-    top: 0; left: 50%; transform: translateX(-50%);
-    width: 600px; height: 300px;
-    background: radial-gradient(ellipse at center, rgba(99,179,237,0.08) 0%, transparent 70%);
-    pointer-events: none;
 }
 .hero-tag {
     display: inline-block;
-    background: rgba(99,179,237,0.1);
-    border: 1px solid rgba(99,179,237,0.25);
-    color: #63b3ed;
-    font-size: 0.72rem;
-    font-weight: 600;
-    letter-spacing: 2px;
+    background: rgba(251,191,36,0.08);
+    border: 1px solid rgba(251,191,36,0.2);
+    color: #fbbf24;
+    font-size: 0.65rem;
+    font-weight: 700;
+    letter-spacing: 3px;
     text-transform: uppercase;
     padding: 4px 14px;
-    border-radius: 20px;
+    border-radius: 4px;
     margin-bottom: 1.2rem;
 }
 .hero h1 {
-    font-family: 'Space Grotesk', sans-serif !important;
-    font-weight: 700;
-    font-size: 2.6rem;
-    color: #f0f4ff;
-    margin: 0 0 0.6rem;
-    letter-spacing: -0.5px;
-    line-height: 1.2;
+    font-weight: 800;
+    font-size: 2.8rem;
+    color: #f1f3f8;
+    margin: 0 0 0.5rem;
+    letter-spacing: -1px;
+    line-height: 1.15;
 }
+.hero h1 span { color: #fbbf24; }
 .hero p {
-    color: #64748b;
-    font-size: 1rem;
+    color: #4a5568;
+    font-size: 0.95rem;
     font-weight: 400;
     margin: 0;
 }
 
-/* ── Section title ── */
-.sec-title {
-    font-family: 'Space Grotesk', sans-serif !important;
-    font-size: 0.72rem;
+/* ── Section label ── */
+.sec-label {
+    font-size: 0.62rem;
+    font-weight: 700;
+    letter-spacing: 3px;
+    text-transform: uppercase;
+    color: #374151;
+    margin-bottom: 0.8rem;
+    margin-top: 2rem;
+}
+
+/* ── Upload box ── */
+[data-testid="stFileUploader"] {
+    background: #0d1017;
+    border: 1.5px dashed #1c2333;
+    border-radius: 12px;
+    padding: 0.4rem;
+    transition: border-color 0.2s;
+}
+[data-testid="stFileUploader"]:hover {
+    border-color: #374151;
+}
+
+/* ── Custom upload label ── */
+.upload-hint {
+    text-align: center;
+    padding: 1.2rem 0 0.4rem;
+    color: #374151;
+    font-size: 0.82rem;
+}
+.upload-hint span {
+    color: #fbbf24;
     font-weight: 600;
+    cursor: pointer;
+}
+
+/* ── Action buttons ── */
+.stButton > button {
+    background: #0d1017 !important;
+    color: #6b7280 !important;
+    border: 1px solid #1c2333 !important;
+    border-radius: 6px !important;
+    font-family: 'Syne', sans-serif !important;
+    font-weight: 600 !important;
+    font-size: 0.82rem !important;
+    padding: 0.4rem 1.1rem !important;
+    letter-spacing: 0.5px !important;
+    transition: all 0.15s !important;
+}
+.stButton > button:hover {
+    background: #1c2333 !important;
+    border-color: #fbbf24 !important;
+    color: #fbbf24 !important;
+}
+
+/* ── Confidence info ── */
+.conf-note {
+    background: rgba(251,191,36,0.06);
+    border: 1px solid rgba(251,191,36,0.15);
+    border-radius: 8px;
+    padding: 10px 14px;
+    font-size: 0.78rem;
+    color: #92400e;
+    margin-bottom: 0.5rem;
+    line-height: 1.5;
+}
+
+/* ── Result card ── */
+.r-card {
+    background: #0d1017;
+    border: 1px solid #1c2333;
+    border-radius: 14px;
+    padding: 1.2rem 1.4rem;
+    margin-bottom: 1rem;
+}
+.r-filename {
+    font-size: 0.72rem;
+    color: #374151;
+    margin-bottom: 0.8rem;
+    font-family: 'DM Mono', monospace !important;
+}
+.img-lbl {
+    font-size: 0.58rem;
+    font-weight: 700;
     letter-spacing: 2.5px;
     text-transform: uppercase;
-    color: #475569;
-    margin-bottom: 1rem;
-}
-
-/* ── Card ── */
-.card {
-    background: #0e1420;
-    border: 1px solid #1a2236;
-    border-radius: 14px;
-    padding: 1.4rem;
-    margin-bottom: 1rem;
-}
-
-/* ── img label ── */
-.img-label {
-    font-size: 0.68rem;
-    font-weight: 600;
-    letter-spacing: 2px;
-    text-transform: uppercase;
-    color: #475569;
-    margin-bottom: 6px;
+    color: #374151;
+    margin-bottom: 5px;
 }
 
 /* ── Badges ── */
 .badge-critical {
     display: inline-block;
-    background: rgba(239,68,68,0.12);
+    background: rgba(239,68,68,0.1);
     color: #f87171;
-    border: 1px solid rgba(239,68,68,0.25);
-    border-radius: 6px;
-    padding: 2px 10px;
-    font-size: 0.76rem;
-    font-weight: 600;
+    border: 1px solid rgba(239,68,68,0.2);
+    border-radius: 4px;
+    padding: 2px 9px;
+    font-size: 0.72rem;
+    font-weight: 700;
+    letter-spacing: 0.3px;
 }
 .badge-warning {
     display: inline-block;
-    background: rgba(245,158,11,0.12);
+    background: rgba(245,158,11,0.1);
     color: #fbbf24;
-    border: 1px solid rgba(245,158,11,0.25);
-    border-radius: 6px;
-    padding: 2px 10px;
-    font-size: 0.76rem;
-    font-weight: 600;
+    border: 1px solid rgba(245,158,11,0.2);
+    border-radius: 4px;
+    padding: 2px 9px;
+    font-size: 0.72rem;
+    font-weight: 700;
+    letter-spacing: 0.3px;
 }
 .badge-safe {
     display: inline-block;
-    background: rgba(52,211,153,0.12);
+    background: rgba(52,211,153,0.1);
     color: #34d399;
-    border: 1px solid rgba(52,211,153,0.25);
-    border-radius: 6px;
-    padding: 2px 10px;
-    font-size: 0.76rem;
-    font-weight: 600;
+    border: 1px solid rgba(52,211,153,0.2);
+    border-radius: 4px;
+    padding: 2px 9px;
+    font-size: 0.72rem;
+    font-weight: 700;
+    letter-spacing: 0.3px;
 }
-
-/* ── Detection row ── */
 .det-row {
     display: flex;
     align-items: center;
     justify-content: space-between;
-    padding: 7px 0;
-    border-bottom: 1px solid #1a2236;
+    padding: 6px 0;
+    border-bottom: 1px solid #111827;
 }
 .det-row:last-child { border-bottom: none; }
 .det-conf {
-    font-family: 'JetBrains Mono', monospace !important;
-    color: #475569;
-    font-size: 0.8rem;
+    font-family: 'DM Mono', monospace !important;
+    color: #374151;
+    font-size: 0.75rem;
+}
+.no-det {
+    font-size: 0.78rem;
+    color: #374151;
+    font-style: italic;
 }
 
-/* ── Alert banners ── */
-.alert-critical {
-    background: rgba(239,68,68,0.08);
-    border-left: 3px solid #ef4444;
-    border-radius: 8px;
-    padding: 8px 12px;
-    margin: 5px 0;
+/* ── Alert inline ── */
+.alert-crit {
+    background: rgba(239,68,68,0.07);
+    border-left: 2px solid #ef4444;
+    border-radius: 6px;
+    padding: 6px 10px;
+    margin: 4px 0;
     color: #f87171;
-    font-size: 0.85rem;
-    font-weight: 500;
+    font-size: 0.78rem;
+    font-weight: 600;
 }
-.alert-warning {
-    background: rgba(245,158,11,0.08);
-    border-left: 3px solid #f59e0b;
-    border-radius: 8px;
-    padding: 8px 12px;
-    margin: 5px 0;
+.alert-warn {
+    background: rgba(245,158,11,0.07);
+    border-left: 2px solid #f59e0b;
+    border-radius: 6px;
+    padding: 6px 10px;
+    margin: 4px 0;
     color: #fbbf24;
-    font-size: 0.85rem;
-    font-weight: 500;
+    font-size: 0.78rem;
+    font-weight: 600;
 }
 
-/* ── Metric boxes ── */
-.metric-box {
-    background: #0e1420;
-    border: 1px solid #1a2236;
-    border-radius: 12px;
-    padding: 1.2rem 1rem;
+/* ── Divider ── */
+.div-line { border: none; border-top: 1px solid #111827; margin: 2.5rem 0; }
+
+/* ── Report section ── */
+.report-header {
+    text-align: center;
+    margin-bottom: 2rem;
+}
+.report-header h2 {
+    font-weight: 800;
+    font-size: 1.6rem;
+    color: #f1f3f8;
+    letter-spacing: -0.5px;
+    margin-bottom: 0.3rem;
+}
+.report-header p { color: #374151; font-size: 0.82rem; }
+
+/* ── Score gauge ── */
+.score-ring {
+    text-align: center;
+    margin: 1.5rem auto;
+}
+.score-num {
+    font-family: 'DM Mono', monospace !important;
+    font-size: 3.5rem;
+    font-weight: 500;
+    line-height: 1;
+}
+.score-lbl {
+    font-size: 0.62rem;
+    font-weight: 700;
+    letter-spacing: 3px;
+    text-transform: uppercase;
+    color: #374151;
+    margin-top: 4px;
+}
+
+/* ── Metric cards ── */
+.mbox {
+    background: #0d1017;
+    border: 1px solid #1c2333;
+    border-radius: 10px;
+    padding: 1rem;
     text-align: center;
 }
-.metric-val {
-    font-family: 'JetBrains Mono', monospace !important;
-    font-size: 2.2rem;
-    font-weight: 600;
-    line-height: 1;
-    margin-bottom: 4px;
-}
-.metric-lbl {
-    font-size: 0.72rem;
+.mval {
+    font-family: 'DM Mono', monospace !important;
+    font-size: 1.8rem;
     font-weight: 500;
-    letter-spacing: 1px;
+    line-height: 1;
+    margin-bottom: 5px;
+}
+.mlbl {
+    font-size: 0.6rem;
+    font-weight: 700;
+    letter-spacing: 2.5px;
     text-transform: uppercase;
-    color: #475569;
+    color: #374151;
 }
 
-/* ── Verdict ── */
+/* ── Verdict pill ── */
 .verdict {
     text-align: center;
-    font-family: 'Space Grotesk', sans-serif !important;
-    font-size: 1.1rem;
+    font-weight: 800;
+    font-size: 1rem;
+    letter-spacing: 2px;
+    text-transform: uppercase;
+    padding: 0.7rem 1.5rem;
+    border-radius: 8px;
+    margin: 1.5rem auto;
+    max-width: 300px;
+}
+.v-safe     { background: rgba(52,211,153,0.08); color: #34d399; border: 1px solid rgba(52,211,153,0.2); }
+.v-warning  { background: rgba(245,158,11,0.08); color: #fbbf24; border: 1px solid rgba(245,158,11,0.2); }
+.v-critical { background: rgba(239,68,68,0.08);  color: #f87171; border: 1px solid rgba(239,68,68,0.2); }
+
+/* ── Timeline ── */
+.timeline-item {
+    display: flex;
+    align-items: flex-start;
+    gap: 12px;
+    padding: 10px 0;
+    border-bottom: 1px solid #111827;
+}
+.timeline-item:last-child { border-bottom: none; }
+.tl-dot-crit {
+    width: 8px; height: 8px;
+    background: #ef4444;
+    border-radius: 50%;
+    margin-top: 5px;
+    flex-shrink: 0;
+}
+.tl-dot-warn {
+    width: 8px; height: 8px;
+    background: #f59e0b;
+    border-radius: 50%;
+    margin-top: 5px;
+    flex-shrink: 0;
+}
+.tl-class {
     font-weight: 700;
-    letter-spacing: 1px;
-    padding: 0.8rem;
-    border-radius: 10px;
-    margin: 1.2rem 0;
+    font-size: 0.82rem;
+    color: #c8cdd8;
 }
-.verdict-safe     { background: rgba(52,211,153,0.08); color: #34d399; border: 1px solid rgba(52,211,153,0.2); }
-.verdict-warning  { background: rgba(245,158,11,0.08); color: #fbbf24; border: 1px solid rgba(245,158,11,0.2); }
-.verdict-critical { background: rgba(239,68,68,0.08);  color: #f87171; border: 1px solid rgba(239,68,68,0.2); }
-
-/* ── Buttons ── */
-.stButton > button {
-    background: #0e1420 !important;
-    color: #94a3b8 !important;
-    border: 1px solid #1a2236 !important;
-    border-radius: 8px !important;
-    font-family: 'Space Grotesk', sans-serif !important;
-    font-weight: 500 !important;
-    font-size: 0.88rem !important;
-    padding: 0.45rem 1.2rem !important;
-    white-space: nowrap !important;
-    transition: all 0.15s !important;
-    min-width: 110px !important;
-}
-.stButton > button:hover {
-    background: #1a2236 !important;
-    border-color: #63b3ed !important;
-    color: #63b3ed !important;
-}
-
-/* ── Upload area ── */
-[data-testid="stFileUploader"] {
-    background: #0e1420;
-    border: 1.5px dashed #1a2236;
-    border-radius: 14px;
-    padding: 0.5rem;
+.tl-meta {
+    font-family: 'DM Mono', monospace !important;
+    font-size: 0.7rem;
+    color: #374151;
+    margin-top: 2px;
 }
 
 /* ── Sidebar ── */
 [data-testid="stSidebar"] {
-    background: #080b12 !important;
-    border-right: 1px solid #1a2236;
+    background: #07090f !important;
+    border-right: 1px solid #111827;
 }
-[data-testid="stSidebar"] * { color: #94a3b8; }
+[data-testid="stSidebar"] * { color: #6b7280; }
+[data-testid="stSidebar"] .sec-label { color: #1c2333; }
 
-/* ── Divider ── */
-.divider { border: none; border-top: 1px solid #1a2236; margin: 2rem 0; }
+/* ── Slider ── */
+[data-testid="stSlider"] [data-testid="stThumbValue"] {
+    font-family: 'DM Mono', monospace !important;
+}
 
 /* ── Footer ── */
 .footer {
     text-align: center;
-    color: #1e293b;
-    font-size: 0.75rem;
-    padding: 2.5rem 0 1rem;
-    letter-spacing: 0.5px;
+    color: #111827;
+    font-size: 0.7rem;
+    padding: 3rem 0 1rem;
+    letter-spacing: 1px;
+    text-transform: uppercase;
 }
 </style>
 """, unsafe_allow_html=True)
@@ -303,9 +413,9 @@ header[data-testid="stHeader"] { background: transparent; }
 # ==========================================
 st.markdown("""
 <div class="hero">
-    <div class="hero-tag">AI Safety System</div>
-    <h1>Driver Drowsiness Detection</h1>
-    <p>Upload driver images — the model analyzes behavior and flags risks in real time.</p>
+    <div class="hero-tag">⚡ AI Safety System</div>
+    <h1>Driver <span>Drowsiness</span><br>Detection</h1>
+    <p>Upload driver images — the model analyzes behavior and flags risks instantly.</p>
 </div>
 """, unsafe_allow_html=True)
 
@@ -313,25 +423,40 @@ st.markdown("""
 # SIDEBAR
 # ==========================================
 with st.sidebar:
-    st.markdown("<div style='padding:1rem 0 0.5rem;font-size:0.72rem;font-weight:600;letter-spacing:2px;text-transform:uppercase;color:#475569;'>Settings</div>", unsafe_allow_html=True)
+    st.markdown("""
+    <div style='padding:1.5rem 0 0.5rem;'>
+        <div style='font-size:0.62rem;font-weight:700;letter-spacing:3px;text-transform:uppercase;color:#1c2333;margin-bottom:1.2rem;'>Settings</div>
+    </div>
+    """, unsafe_allow_html=True)
 
-    conf_threshold = st.slider("Confidence Threshold", 0.10, 1.00, 0.40, 0.05)
+    conf_threshold = st.slider("Confidence Threshold", 0.10, 1.00, 0.25, 0.05,
+                               help="اخفضه لو النتايج مش بتطلع — جرب 0.15 أو 0.20")
 
-    st.markdown("<hr style='border-color:#1a2236;margin:1rem 0'>", unsafe_allow_html=True)
-    st.markdown("<div style='font-size:0.72rem;font-weight:600;letter-spacing:2px;text-transform:uppercase;color:#475569;margin-bottom:0.8rem;'>Class Legend</div>", unsafe_allow_html=True)
+    st.markdown("""
+    <div style='font-size:0.72rem;color:#374151;margin-top:0.5rem;line-height:1.6;
+                background:rgba(251,191,36,0.04);border:1px solid rgba(251,191,36,0.1);
+                border-radius:6px;padding:8px 10px;'>
+        💡 لو الصورة مش بتتطلعلها نتيجة، اخفض الـ threshold لـ 0.15–0.20
+    </div>
+    """, unsafe_allow_html=True)
 
-    legend = {
-        "CRITICAL": (["DangerousDriving","SleepyDriving","Drinking"], "badge-critical"),
-        "WARNING":  (["Distracted","Yawn"],                            "badge-warning"),
-        "SAFE":     (["SafeDriving"],                                  "badge-safe"),
-    }
-    for level, (names, cls) in legend.items():
-        for n in names:
-            st.markdown(f'<div style="margin-bottom:6px"><span class="{cls}">{n}</span></div>', unsafe_allow_html=True)
-        st.markdown("<br>", unsafe_allow_html=True)
+    st.markdown("<hr style='border-color:#111827;margin:1.5rem 0'>", unsafe_allow_html=True)
+    st.markdown("<div style='font-size:0.62rem;font-weight:700;letter-spacing:3px;text-transform:uppercase;color:#1c2333;margin-bottom:1rem;'>Class Legend</div>", unsafe_allow_html=True)
 
-    st.markdown("<hr style='border-color:#1a2236;margin:1rem 0'>", unsafe_allow_html=True)
-    st.markdown("<div style='color:#1e293b;font-size:0.72rem;letter-spacing:0.5px;'>YOLO11s · Driver Safety AI</div>", unsafe_allow_html=True)
+    legend_items = [
+        ("DangerousDriving", "badge-critical", "CRITICAL"),
+        ("SleepyDriving",    "badge-critical", "CRITICAL"),
+        ("Drinking",         "badge-critical", "CRITICAL"),
+        ("Distracted",       "badge-warning",  "WARNING"),
+        ("Yawn",             "badge-warning",  "WARNING"),
+        ("SafeDriving",      "badge-safe",     "SAFE"),
+    ]
+    for name, cls, lvl in legend_items:
+        st.markdown(f'<div style="margin-bottom:7px"><span class="{cls}">{name}</span></div>',
+                    unsafe_allow_html=True)
+
+    st.markdown("<hr style='border-color:#111827;margin:1.5rem 0'>", unsafe_allow_html=True)
+    st.markdown("<div style='color:#1c2333;font-size:0.65rem;letter-spacing:1px;text-transform:uppercase;'>YOLO11s · Driver Safety AI</div>", unsafe_allow_html=True)
 
 # ==========================================
 # LOAD MODEL
@@ -343,7 +468,7 @@ def load_model():
 try:
     model = load_model()
 except Exception as e:
-    st.error(f"Could not load model: {e}")
+    st.error(f"❌ Could not load model `{MODEL_PATH}`: {e}")
     st.stop()
 
 # ==========================================
@@ -382,7 +507,6 @@ for key, default in [
         st.session_state[key] = default
 
 def check_alerts(detections):
-    """فقط CRITICAL و WARNING يطلع ليهم alert — SAFE مش بيطلعش"""
     detected_now = [d[0] for d in detections]
     alerts = []
 
@@ -392,18 +516,17 @@ def check_alerts(detections):
 
     for name, conf in detections:
         level = ALERT_CONFIG[name]["level"]
-
-        # SafeDriving لا يطلع alert أبداً
         if level == "SAFE":
             continue
 
         st.session_state.counts[name] += 1
 
-        if st.session_state.counts[name] >= 2:
+        if st.session_state.counts[name] >= 1:   # كل detection تسجل في الـ report
             now = time.time()
-            if now - st.session_state.last_alert.get(name, 0) > 5:
+            if now - st.session_state.last_alert.get(name, 0) > 3:
                 alert = {"timestamp": now, "class": name,
-                         "level": level, "confidence": conf}
+                         "level": level, "confidence": conf,
+                         "time_str": datetime.now().strftime("%H:%M:%S")}
                 st.session_state.alert_log.append(alert)
                 st.session_state.last_alert[name] = now
                 alerts.append(alert)
@@ -412,16 +535,32 @@ def check_alerts(detections):
 # ==========================================
 # UPLOAD SECTION
 # ==========================================
-st.markdown('<div class="sec-title">Upload Images</div>', unsafe_allow_html=True)
+st.markdown('<div class="sec-label">Upload Images</div>', unsafe_allow_html=True)
+
+# Confidence hint
+st.markdown("""
+<div class="conf-note">
+    ⚠️ <strong>لو النتايج مش بتطلع:</strong> اخفض الـ Confidence Threshold من الـ sidebar —
+    جرب <strong>0.15</strong> أو <strong>0.20</strong> بدل 0.40.
+    النموذج ممكن يكون شايف الكلاس بـ confidence أقل من الـ threshold.
+</div>
+""", unsafe_allow_html=True)
 
 uploaded_files = st.file_uploader(
-    "Drop driver images here",
+    "اختار صور السائق",      # ← label واضحة ومش بتتكرر
     type=["jpg","jpeg","png"],
     accept_multiple_files=True,
-    label_visibility="collapsed",
+    label_visibility="collapsed",   # ← إخفاء الـ label من فوق عشان ما تتكررش
 )
 
-col_a, col_b, _ = st.columns([1.1, 1.1, 6])
+# Custom hint under uploader
+st.markdown("""
+<div class="upload-hint">
+    📁 اسحب الصور هنا أو <span>Browse</span> — JPG · PNG · حتى 200MB
+</div>
+""", unsafe_allow_html=True)
+
+col_a, col_b, _ = st.columns([1, 1, 5])
 with col_a:
     analyze_btn = st.button("🔍  Analyze", use_container_width=True)
 with col_b:
@@ -439,49 +578,50 @@ if clear_btn:
 # ==========================================
 if analyze_btn and uploaded_files:
     st.session_state.results = []
-    with st.spinner("Analyzing..."):
-        for f in uploaded_files:
-            img   = Image.open(f).convert("RGB")
-            frame = cv2.cvtColor(np.array(img), cv2.COLOR_RGB2BGR)
-            out_frame, dets = detect(frame, conf_threshold)
-            out_rgb = cv2.cvtColor(out_frame, cv2.COLOR_BGR2RGB)
-            alerts  = check_alerts(dets)
-            st.session_state.results.append({
-                "name":       f.name,
-                "original":   img,
-                "output":     out_rgb,
-                "detections": dets,
-                "alerts":     alerts,
-            })
+    progress = st.progress(0, text="Analyzing images...")
+    for i, f in enumerate(uploaded_files):
+        img   = Image.open(f).convert("RGB")
+        frame = cv2.cvtColor(np.array(img), cv2.COLOR_RGB2BGR)
+        out_frame, dets = detect(frame, conf_threshold)
+        out_rgb = cv2.cvtColor(out_frame, cv2.COLOR_BGR2RGB)
+        alerts  = check_alerts(dets)
+        st.session_state.results.append({
+            "name":       f.name,
+            "original":   img,
+            "output":     out_rgb,
+            "detections": dets,
+            "alerts":     alerts,
+        })
+        progress.progress((i+1)/len(uploaded_files),
+                          text=f"Analyzing {i+1}/{len(uploaded_files)}...")
+    progress.empty()
+
 elif analyze_btn:
-    st.warning("Please upload at least one image first.")
+    st.warning("⚠️ Please upload at least one image first.")
 
 # ==========================================
 # RESULTS
 # ==========================================
 if st.session_state.results:
-    st.markdown("<hr class='divider'>", unsafe_allow_html=True)
-    st.markdown('<div class="sec-title">Detection Results</div>', unsafe_allow_html=True)
+    st.markdown("<div class='div-line'></div>", unsafe_allow_html=True)
+    st.markdown('<div class="sec-label">Detection Results</div>', unsafe_allow_html=True)
 
     for res in st.session_state.results:
-        st.markdown('<div class="card">', unsafe_allow_html=True)
-        st.markdown(
-            f"<div style='font-size:0.78rem;color:#475569;margin-bottom:0.8rem;'>📎 {res['name']}</div>",
-            unsafe_allow_html=True
-        )
+        st.markdown('<div class="r-card">', unsafe_allow_html=True)
+        st.markdown(f"<div class='r-filename'>📎 {res['name']}</div>", unsafe_allow_html=True)
 
-        c1, c2, c3 = st.columns([2, 2, 1.4])
+        c1, c2, c3 = st.columns([2, 2, 1.3])
 
         with c1:
-            st.markdown("<div class='img-label'>Original</div>", unsafe_allow_html=True)
+            st.markdown("<div class='img-lbl'>Original</div>", unsafe_allow_html=True)
             st.image(res["original"], use_column_width=True)
 
         with c2:
-            st.markdown("<div class='img-label'>Detection</div>", unsafe_allow_html=True)
+            st.markdown("<div class='img-lbl'>Detection</div>", unsafe_allow_html=True)
             st.image(res["output"], use_column_width=True)
 
         with c3:
-            st.markdown("<div class='img-label'>Findings</div>", unsafe_allow_html=True)
+            st.markdown("<div class='img-lbl'>Findings</div>", unsafe_allow_html=True)
             if res["detections"]:
                 for name, conf in res["detections"]:
                     lvl   = ALERT_CONFIG[name]["level"]
@@ -496,14 +636,14 @@ if st.session_state.results:
                         unsafe_allow_html=True
                     )
             else:
-                st.markdown("<div style='color:#475569;font-size:0.82rem;'>No detections</div>",
+                st.markdown("<div class='no-det'>No detections — try lowering confidence</div>",
                             unsafe_allow_html=True)
 
-            # Alerts — SafeDriving مش بيطلعش هنا
+            # Alerts
             if res["alerts"]:
                 st.markdown("<div style='height:8px'></div>", unsafe_allow_html=True)
                 for alert in res["alerts"]:
-                    css = "alert-critical" if alert["level"] == "CRITICAL" else "alert-warning"
+                    css = "alert-crit" if alert["level"] == "CRITICAL" else "alert-warn"
                     ico = "🚨" if alert["level"] == "CRITICAL" else "⚠️"
                     st.markdown(f'<div class="{css}">{ico} {alert["class"]}</div>',
                                 unsafe_allow_html=True)
@@ -511,11 +651,10 @@ if st.session_state.results:
         st.markdown("</div>", unsafe_allow_html=True)
 
 # ==========================================
-# SESSION REPORT
+# SESSION REPORT  ← الجزء المحسّن
 # ==========================================
 if st.session_state.alert_log:
-    st.markdown("<hr class='divider'>", unsafe_allow_html=True)
-    st.markdown('<div class="sec-title">Session Report</div>', unsafe_allow_html=True)
+    st.markdown("<div class='div-line'></div>", unsafe_allow_html=True)
 
     log      = st.session_state.alert_log
     counts   = Counter(a["class"] for a in log)
@@ -523,87 +662,184 @@ if st.session_state.alert_log:
     warning  = sum(1 for a in log if a["level"] == "WARNING")
     score    = max(0, 100 - critical * 10 - warning * 4)
 
-    verdict_text  = "✅  SAFE DRIVER"     if score >= 85 else \
-                    "⚠️  NEEDS ATTENTION" if score >= 60 else \
-                    "🚨  DANGEROUS DRIVER"
-    verdict_class = "verdict-safe"     if score >= 85 else \
-                    "verdict-warning"  if score >= 60 else \
-                    "verdict-critical"
+    verdict_text  = "SAFE DRIVER"      if score >= 85 else \
+                    "NEEDS ATTENTION"  if score >= 60 else \
+                    "DANGEROUS DRIVER"
+    verdict_emoji = "✅"  if score >= 85 else "⚠️"  if score >= 60 else "🚨"
+    verdict_cls   = "v-safe"    if score >= 85 else \
+                    "v-warning" if score >= 60 else "v-critical"
     score_color   = "#34d399" if score >= 85 else "#fbbf24" if score >= 60 else "#f87171"
 
-    # Metrics
-    m1, m2, m3, m4 = st.columns(4)
-    for col, val, lbl, clr in zip(
-        [m1, m2, m3, m4],
-        [f"{score}/100", str(len(log)), str(critical), str(warning)],
-        ["Safety Score", "Total Alerts", "Critical", "Warnings"],
-        [score_color, "#63b3ed", "#f87171", "#fbbf24"]
-    ):
+    # Header
+    st.markdown(f"""
+    <div class="report-header">
+        <div class="sec-label" style="margin-top:0">Session Safety Report</div>
+        <h2>Analysis Complete</h2>
+        <p>{datetime.now().strftime("%Y-%m-%d · %H:%M:%S")} · {len(st.session_state.results)} image(s) analyzed</p>
+    </div>
+    """, unsafe_allow_html=True)
+
+    # Score + verdict
+    col_score, col_meta = st.columns([1, 2])
+
+    with col_score:
+        st.markdown(f"""
+        <div class="score-ring">
+            <div class="score-num" style="color:{score_color}">{score}</div>
+            <div class="score-lbl">Safety Score / 100</div>
+        </div>
+        <div class="verdict {verdict_cls}">{verdict_emoji} {verdict_text}</div>
+        """, unsafe_allow_html=True)
+
+    with col_meta:
+        m1, m2 = st.columns(2)
+        m3, m4 = st.columns(2)
+
+        for col, val, lbl, clr in [
+            (m1, str(len(log)),      "Total Alerts",    "#c8cdd8"),
+            (m2, str(critical),      "Critical",        "#f87171"),
+            (m3, str(warning),       "Warnings",        "#fbbf24"),
+            (m4, str(len(st.session_state.results)), "Images", "#6b7280"),
+        ]:
+            with col:
+                st.markdown(
+                    f'<div class="mbox">'
+                    f'<div class="mval" style="color:{clr}">{val}</div>'
+                    f'<div class="mlbl">{lbl}</div>'
+                    f'</div>',
+                    unsafe_allow_html=True
+                )
+
+    st.markdown("<div style='height:1.5rem'></div>", unsafe_allow_html=True)
+
+    # ── Chart ──
+    if counts:
+        col_chart, col_timeline = st.columns([1.2, 1])
+
+        with col_chart:
+            st.markdown('<div class="sec-label" style="margin-top:0">Alert Breakdown</div>',
+                        unsafe_allow_html=True)
+            fig, ax = plt.subplots(figsize=(5, max(2, len(counts) * 0.7)))
+            fig.patch.set_facecolor("#0d1017")
+            ax.set_facecolor("#0d1017")
+
+            clrs = ["#ef4444" if c in DANGER_CLASSES else
+                    "#f59e0b" if c in WARNING_CLASSES else
+                    "#34d399" for c in counts.keys()]
+
+            bars = ax.barh(list(counts.keys()), list(counts.values()),
+                           color=clrs, height=0.45, edgecolor="none")
+
+            ax.set_xlabel("Number of Alerts", color="#374151", fontsize=8)
+            ax.tick_params(colors="#4b5563", labelsize=8)
+            for spine in ax.spines.values():
+                spine.set_color("#111827")
+            ax.xaxis.grid(True, color="#111827", zorder=0, linestyle="--", linewidth=0.5)
+            ax.set_axisbelow(True)
+
+            for bar, val in zip(bars, counts.values()):
+                ax.text(val + 0.05, bar.get_y() + bar.get_height()/2,
+                        str(val), va='center', color="#6b7280", fontsize=8)
+
+            plt.tight_layout(pad=1)
+            st.pyplot(fig)
+            plt.close()
+
+        with col_timeline:
+            st.markdown('<div class="sec-label" style="margin-top:0">Alert Timeline</div>',
+                        unsafe_allow_html=True)
+
+            st.markdown('<div style="background:#0d1017;border:1px solid #111827;border-radius:10px;padding:0.8rem 1rem;">', unsafe_allow_html=True)
+            for alert in log[-15:]:   # آخر 15 alert
+                dot_cls = "tl-dot-crit" if alert["level"] == "CRITICAL" else "tl-dot-warn"
+                ico = "🚨" if alert["level"] == "CRITICAL" else "⚠️"
+                t = alert.get("time_str", "—")
+                conf_pct = f"{alert['confidence']:.0%}"
+                st.markdown(f"""
+                <div class="timeline-item">
+                    <div class="{dot_cls}"></div>
+                    <div>
+                        <div class="tl-class">{ico} {alert['class']}</div>
+                        <div class="tl-meta">{t} · conf {conf_pct} · {alert['level']}</div>
+                    </div>
+                </div>
+                """, unsafe_allow_html=True)
+            st.markdown("</div>", unsafe_allow_html=True)
+
+    # ── Class summary ──
+    st.markdown("<div style='height:1.5rem'></div>", unsafe_allow_html=True)
+    st.markdown('<div class="sec-label" style="margin-top:0">Class Summary</div>',
+                unsafe_allow_html=True)
+
+    summary_cols = st.columns(len(CLASS_NAMES))
+    for col, cls_name in zip(summary_cols, CLASS_NAMES):
+        cnt   = counts.get(cls_name, 0)
+        level = ALERT_CONFIG[cls_name]["level"]
+        clr   = "#f87171" if level == "CRITICAL" else \
+                "#fbbf24" if level == "WARNING"  else "#34d399"
         with col:
             st.markdown(
-                f'<div class="metric-box">'
-                f'<div class="metric-val" style="color:{clr}">{val}</div>'
-                f'<div class="metric-lbl">{lbl}</div>'
+                f'<div class="mbox">'
+                f'<div class="mval" style="color:{clr};font-size:1.5rem">{cnt}</div>'
+                f'<div class="mlbl" style="font-size:0.55rem">{cls_name}</div>'
                 f'</div>',
                 unsafe_allow_html=True
             )
 
-    # Verdict
-    st.markdown(f'<div class="verdict {verdict_class}">{verdict_text}</div>',
-                unsafe_allow_html=True)
-
-    # Chart — أصغر وأنيق
-    if counts:
-        fig, ax = plt.subplots(figsize=(6, 2.5))
-        fig.patch.set_facecolor("#0e1420")
-        ax.set_facecolor("#0e1420")
-
-        clrs = ["#f87171" if c in DANGER_CLASSES else
-                "#fbbf24" if c in WARNING_CLASSES else
-                "#34d399" for c in counts.keys()]
-
-        bars = ax.barh(list(counts.keys()), list(counts.values()),
-                       color=clrs, height=0.5)
-
-        ax.set_xlabel("Alerts", color="#475569", fontsize=8)
-        ax.tick_params(colors="#64748b", labelsize=8)
-        ax.set_title("Alert Breakdown", color="#94a3b8",
-                     fontsize=9, pad=8, loc="left")
-
-        for spine in ax.spines.values():
-            spine.set_color("#1a2236")
-        ax.xaxis.grid(True, color="#1a2236", zorder=0)
-        ax.set_axisbelow(True)
-
-        # Value labels
-        for bar, val in zip(bars, counts.values()):
-            ax.text(val + 0.05, bar.get_y() + bar.get_height()/2,
-                    str(val), va='center', color="#94a3b8", fontsize=8)
-
-        plt.tight_layout(pad=1)
-        st.pyplot(fig)
-
-    # Download
+    # ── Download ──
+    st.markdown("<div style='height:1.5rem'></div>", unsafe_allow_html=True)
     report_data = {
-        "date":          datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
+        "generated_at":  datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
+        "images_analyzed": len(st.session_state.results),
         "total_alerts":  len(log),
-        "critical":      critical,
-        "warning":       warning,
-        "score":         score,
+        "critical_count": critical,
+        "warning_count":  warning,
+        "safety_score":  score,
         "verdict":       verdict_text,
-        "breakdown":     dict(counts),
+        "class_breakdown": dict(counts),
+        "alert_log": [
+            {
+                "class":      a["class"],
+                "level":      a["level"],
+                "confidence": round(a["confidence"], 3),
+                "time":       a.get("time_str", "—"),
+            }
+            for a in log
+        ],
     }
-    st.download_button(
-        label="⬇️  Download Report (JSON)",
-        data=json.dumps(report_data, indent=4),
-        file_name="driver_report.json",
-        mime="application/json",
-    )
+
+    col_dl, col_clr, _ = st.columns([1.2, 1.2, 5])
+    with col_dl:
+        st.download_button(
+            label="⬇️  Download Report (JSON)",
+            data=json.dumps(report_data, indent=4, ensure_ascii=False),
+            file_name=f"driver_report_{datetime.now().strftime('%Y%m%d_%H%M%S')}.json",
+            mime="application/json",
+            use_container_width=True,
+        )
+    with col_clr:
+        if st.button("🗑  Clear Report", use_container_width=True):
+            st.session_state.alert_log  = []
+            st.session_state.counts     = {n: 0 for n in CLASS_NAMES}
+            st.session_state.last_alert = {}
+            st.session_state.results    = []
+            st.rerun()
+
+elif st.session_state.results:
+    # Results موجودة بس مفيش alerts (كل حاجة Safe)
+    st.markdown("<div class='div-line'></div>", unsafe_allow_html=True)
+    st.markdown("""
+    <div style='text-align:center;padding:2rem;'>
+        <div style='font-size:2rem;margin-bottom:0.5rem;'>✅</div>
+        <div style='font-weight:700;color:#34d399;font-size:1.1rem;letter-spacing:1px;'>ALL CLEAR — SAFE DRIVING</div>
+        <div style='color:#374151;font-size:0.82rem;margin-top:0.5rem;'>No dangerous behavior detected in this session.</div>
+    </div>
+    """, unsafe_allow_html=True)
 
 # ==========================================
 # FOOTER
 # ==========================================
 st.markdown(
-    "<div class='footer'>Driver Drowsiness Detection · YOLO11s · Streamlit Cloud</div>",
+    "<div class='footer'>Driver Drowsiness Detection · YOLO11s · Built with Streamlit</div>",
     unsafe_allow_html=True
 )
