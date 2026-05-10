@@ -10,7 +10,7 @@ st.set_page_config(
     page_title="DrowsyGuard · AI Driver Monitor",
     page_icon="🎬",
     layout="wide",
-    initial_sidebar_state="collapsed",
+    initial_sidebar_state="expanded",
 )
 
 # ─────────────────────────────────────────────
@@ -56,6 +56,37 @@ html, body, [data-testid="stAppViewContainer"] {
     );
     pointer-events: none;
     z-index: 9999;
+}
+
+/* ── SIDEBAR STYLE ── */
+[data-testid="stSidebar"] {
+    background: linear-gradient(180deg, #06101e 0%, #030810 100%) !important;
+    border-right: 1px solid rgba(62,207,175,0.15) !important;
+}
+[data-testid="stSidebar"]::before {
+    content: '';
+    position: absolute;
+    top: 0; left: 0; right: 0;
+    height: 2px;
+    background: linear-gradient(90deg, transparent, #3ecfaf, transparent);
+}
+[data-testid="stSidebar"] * {
+    color: #c8d8e8 !important;
+}
+
+/* ── HIDE X BUTTON ON FILE UPLOADER ── */
+[data-testid="stFileUploaderDeleteBtn"],
+button[title="Remove file"],
+[data-testid="fileDeleteBtn"],
+.st-emotion-cache-1erivf3,
+[aria-label="Remove file"] {
+    display: none !important;
+    visibility: hidden !important;
+}
+
+/* also target by class patterns Streamlit uses */
+[data-testid="stFileUploader"] button {
+    display: none !important;
 }
 
 /* ── MAIN BLOCK ── */
@@ -142,10 +173,7 @@ html, body, [data-testid="stAppViewContainer"] {
     box-shadow: 0 0 30px rgba(62,207,175,0.1) !important;
 }
 [data-testid="stFileUploader"] label {
-    color: #8ecfff !important;
-    font-family: 'Rajdhani', sans-serif !important;
-    font-size: 1.1rem !important;
-    letter-spacing: 0.05em !important;
+    display: none !important;
 }
 [data-testid="stFileUploaderDropzone"] span {
     color: #4a6fa5 !important;
@@ -193,6 +221,27 @@ html, body, [data-testid="stAppViewContainer"] {
     transform: translateY(-2px);
 }
 
+/* ── RESULT PAIR ROW ── */
+.result-pair-row {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 1.5rem;
+    margin-bottom: 2rem;
+    background: rgba(10,22,40,0.5);
+    border: 1px solid rgba(62,207,175,0.12);
+    border-radius: 14px;
+    padding: 1.25rem;
+}
+.result-pair-label {
+    font-family: 'Share Tech Mono', monospace;
+    font-size: 0.65rem;
+    letter-spacing: 0.25em;
+    color: #3ecfaf;
+    text-transform: uppercase;
+    margin-bottom: 0.5rem;
+    opacity: 0.7;
+}
+
 /* ── PREDICTION CARDS ── */
 .pred-card {
     background: linear-gradient(135deg, rgba(10,22,40,0.95) 0%, rgba(5,14,26,0.98) 100%);
@@ -201,8 +250,8 @@ html, body, [data-testid="stAppViewContainer"] {
     padding: 1.5rem;
     position: relative;
     overflow: hidden;
-    margin-bottom: 1rem;
     box-shadow: 0 4px 30px rgba(0,0,0,0.5);
+    height: 100%;
 }
 .pred-card::after {
     content: '';
@@ -374,6 +423,25 @@ html, body, [data-testid="stAppViewContainer"] {
     color: #7fffd4 !important;
 }
 
+/* ── SLIDER (Threshold) ── */
+[data-testid="stSlider"] > div > div > div > div {
+    background: linear-gradient(90deg, #3ecfaf, #8ecfff) !important;
+}
+[data-testid="stSlider"] [role="slider"] {
+    background: #3ecfaf !important;
+    border: 2px solid #0d2d24 !important;
+    box-shadow: 0 0 12px rgba(62,207,175,0.6) !important;
+    width: 20px !important;
+    height: 20px !important;
+}
+[data-testid="stSlider"] label {
+    font-family: 'Share Tech Mono', monospace !important;
+    font-size: 0.8rem !important;
+    letter-spacing: 0.15em !important;
+    color: #3ecfaf !important;
+    text-transform: uppercase !important;
+}
+
 /* ── SPINNER OVERRIDE ── */
 [data-testid="stSpinner"] > div {
     border-color: #3ecfaf transparent transparent transparent !important;
@@ -388,6 +456,32 @@ hr {
 
 /* ── COLUMNS ── */
 [data-testid="stHorizontalBlock"] { gap: 1.5rem !important; }
+
+/* ── SIDEBAR CLASS CARDS ── */
+.class-card {
+    background: rgba(255,255,255,0.03);
+    border: 1px solid rgba(62,207,175,0.12);
+    border-radius: 10px;
+    padding: 0.75rem 1rem;
+    margin-bottom: 0.6rem;
+    border-left: 3px solid var(--cls-color, #3ecfaf);
+}
+.class-card-title {
+    font-family: 'Bebas Neue', sans-serif;
+    font-size: 1rem;
+    letter-spacing: 0.1em;
+    color: var(--cls-color, #3ecfaf);
+    display: flex;
+    align-items: center;
+    gap: 0.4rem;
+    margin-bottom: 0.3rem;
+}
+.class-card-desc {
+    font-family: 'Rajdhani', sans-serif;
+    font-size: 0.78rem;
+    color: #6a8faf;
+    line-height: 1.4;
+}
 </style>
 """, unsafe_allow_html=True)
 
@@ -413,6 +507,94 @@ CLASS_META = {
     "Yawn":             {"icon": "🥱", "color": "#ffbe3c", "level": "caution",  "label": "CAUTION"},
 }
 
+CLASS_DESCRIPTIONS = {
+    "DangerousDriving": {
+        "color": "#ff4646",
+        "icon": "⚡",
+        "desc": "Gray-scale images capturing reckless or hazardous driving behavior, such as speeding or erratic lane changes."
+    },
+    "Distracted": {
+        "color": "#ffbe3c",
+        "icon": "👁",
+        "desc": "Instances where the driver's attention is diverted away from the road, possibly due to smartphone usage, eating, or interacting with passengers."
+    },
+    "Drinking": {
+        "color": "#ff8c42",
+        "icon": "🥤",
+        "desc": "Gray-scale images depicting drivers consuming alcoholic beverages while behind the wheel, highlighting the dangers of driving under the influence."
+    },
+    "SafeDriving": {
+        "color": "#3ecfaf",
+        "icon": "✅",
+        "desc": "Examples of responsible and cautious driving behavior in gray-scale, including obeying traffic laws, maintaining safe distances, and using turn signals."
+    },
+    "SleepyDriving": {
+        "color": "#b46fff",
+        "icon": "😴",
+        "desc": "Instances where drivers exhibit signs of drowsiness or fatigue, posing a significant risk of accidents due to reduced alertness, depicted in gray-scale."
+    },
+    "Yawn": {
+        "color": "#ffbe3c",
+        "icon": "🥱",
+        "desc": "Gray-scale images capturing drivers in the act of yawning, often indicative of fatigue or tiredness, which can impair driving performance."
+    },
+}
+
+
+# ─────────────────────────────────────────────
+#  SIDEBAR — Class Descriptions + Threshold
+# ─────────────────────────────────────────────
+with st.sidebar:
+    st.markdown("""
+    <div style="text-align:center; padding: 1.2rem 0 0.5rem;">
+        <div style="font-family:'Bebas Neue',sans-serif; font-size:1.5rem; letter-spacing:0.2em; color:#3ecfaf;">
+            CLASS GUIDE
+        </div>
+        <div style="font-family:'Share Tech Mono',monospace; font-size:0.65rem; letter-spacing:0.2em; color:#4a6fa5; margin-top:0.2rem;">
+            DETECTION CATEGORIES
+        </div>
+        <div style="height:1px; background:linear-gradient(90deg,transparent,#3ecfaf,transparent); margin:0.8rem 0;"></div>
+    </div>
+    """, unsafe_allow_html=True)
+
+    for cls_name, cls_info in CLASS_DESCRIPTIONS.items():
+        st.markdown(f"""
+        <div class="class-card" style="--cls-color:{cls_info['color']}">
+            <div class="class-card-title">
+                {cls_info['icon']} {cls_name}
+            </div>
+            <div class="class-card-desc">{cls_info['desc']}</div>
+        </div>
+        """, unsafe_allow_html=True)
+
+    st.markdown("""
+    <div style="height:1px; background:linear-gradient(90deg,transparent,#3ecfaf,transparent); margin:1rem 0;"></div>
+    <div style="font-family:'Share Tech Mono',monospace; font-size:0.7rem; letter-spacing:0.2em; color:#3ecfaf; text-align:center; margin-bottom:0.5rem;">
+        ⚙ DETECTION THRESHOLD
+    </div>
+    """, unsafe_allow_html=True)
+
+    threshold = st.slider(
+        "Confidence Threshold",
+        min_value=0.10,
+        max_value=0.95,
+        value=0.25,
+        step=0.05,
+        format="%.2f",
+        label_visibility="collapsed",
+    )
+
+    st.markdown(f"""
+    <div style="text-align:center; font-family:'Bebas Neue',sans-serif; font-size:1.6rem;
+                color:#3ecfaf; filter:drop-shadow(0 0 10px rgba(62,207,175,0.5)); margin-top:0.2rem;">
+        {int(threshold*100)}%
+    </div>
+    <div style="font-family:'Share Tech Mono',monospace; font-size:0.6rem; color:#4a6fa5;
+                text-align:center; letter-spacing:0.15em;">
+        MIN CONFIDENCE TO ACCEPT
+    </div>
+    """, unsafe_allow_html=True)
+
 
 # ─────────────────────────────────────────────
 #  YOLO MODEL  (cached so it loads only once)
@@ -423,17 +605,16 @@ def load_model():
 
 
 # ─────────────────────────────────────────────
-#  REAL INFERENCE
+#  REAL INFERENCE  (uses sidebar threshold)
 # ─────────────────────────────────────────────
-def run_inference(image: Image.Image) -> dict:
+def run_inference(image: Image.Image, conf_threshold: float = 0.25) -> dict:
     model = load_model()
-    results = model.predict(image, imgsz=640, conf=0.25, verbose=False)
+    results = model.predict(image, imgsz=640, conf=conf_threshold, verbose=False)
     boxes = results[0].boxes
     if boxes is not None and len(boxes):
         cls  = int(boxes.cls[0].item())
         conf = float(boxes.conf[0].item())
         return {"class": CLASS_NAMES[cls], "confidence": conf}
-    # No detection → default to SafeDriving with low confidence
     return {"class": "SafeDriving", "confidence": 0.5}
 
 
@@ -471,10 +652,10 @@ st.markdown("""
 """, unsafe_allow_html=True)
 
 uploaded_files = st.file_uploader(
-    "Drop driver images here — supports JPG, PNG, WEBP",
+    "upload_hidden",                    # kept but hidden via CSS
     type=["jpg", "jpeg", "png", "webp"],
     accept_multiple_files=True,
-    label_visibility="visible",
+    label_visibility="hidden",          # hides the label → no duplicate text
 )
 st.markdown('</div>', unsafe_allow_html=True)
 
@@ -525,7 +706,7 @@ if uploaded_files:
         with st.spinner("Running neural analysis…"):
             for f in uploaded_files:
                 img = Image.open(f).convert("RGB")
-                result = run_inference(img)
+                result = run_inference(img, conf_threshold=threshold)
                 preds.append({
                     "filename": f.name,
                     "image": img,
@@ -538,7 +719,7 @@ if uploaded_files:
 
 
 # ─────────────────────────────────────────────
-#  PREDICTIONS
+#  PREDICTIONS  — Original + Predicted side-by-side
 # ─────────────────────────────────────────────
 if st.session_state.show_results and st.session_state.predictions:
     preds = st.session_state.predictions
@@ -551,33 +732,46 @@ if st.session_state.show_results and st.session_state.predictions:
     </div>
     """, unsafe_allow_html=True)
 
-    # Display cards in rows of 3
-    chunk_size = 3
-    for row_start in range(0, len(preds), chunk_size):
-        row_preds = preds[row_start:row_start + chunk_size]
-        cols = st.columns(len(row_preds))
+    for p in preds:
+        meta = CLASS_META[p["class"]]
+        conf_pct = int(p["confidence"] * 100)
 
-        for col, p in zip(cols, row_preds):
-            meta = CLASS_META[p["class"]]
-            conf_pct = int(p["confidence"] * 100)
+        col_orig, col_pred = st.columns(2)
 
-            with col:
-                st.markdown(f"""
-                <div class="pred-card" style="--accent-color:{meta['color']}">
-                    <div class="pred-icon">{meta['icon']}</div>
-                    <div class="pred-filename">{p['filename'][:30]}{'…' if len(p['filename'])>30 else ''}</div>
-                    <div class="pred-class-name">{p['class']}</div>
-                    <div class="pred-confidence">
-                        Confidence: {conf_pct}%
-                    </div>
-                    <span class="status-badge badge-{'safe' if meta['level']=='safe' else 'warning' if meta['level']=='caution' else 'danger'}">
-                        ● {meta['label']}
-                    </span>
-                    <div class="pred-bar-bg">
-                        <div class="pred-bar-fill" style="width:{conf_pct}%"></div>
-                    </div>
+        # ── Original image ──
+        with col_orig:
+            st.markdown('<div class="result-pair-label">📷 ORIGINAL FRAME</div>', unsafe_allow_html=True)
+            st.markdown('<div class="img-card-wrap">', unsafe_allow_html=True)
+            st.image(p["image"], use_container_width=True)
+            st.markdown('</div>', unsafe_allow_html=True)
+            st.markdown(
+                f'<p style="font-family:\'Share Tech Mono\',monospace;font-size:0.65rem;'
+                f'color:#4a6fa5;text-align:center;margin-top:0.3rem;letter-spacing:0.05em;">'
+                f'{p["filename"][:32]}{"…" if len(p["filename"])>32 else ""}</p>',
+                unsafe_allow_html=True,
+            )
+
+        # ── Prediction card ──
+        with col_pred:
+            st.markdown('<div class="result-pair-label">🤖 PREDICTION</div>', unsafe_allow_html=True)
+            st.markdown(f"""
+            <div class="pred-card" style="--accent-color:{meta['color']}">
+                <div class="pred-icon">{meta['icon']}</div>
+                <div class="pred-filename">{p['filename'][:30]}{'…' if len(p['filename'])>30 else ''}</div>
+                <div class="pred-class-name">{p['class']}</div>
+                <div class="pred-confidence">
+                    Confidence: {conf_pct}%
                 </div>
-                """, unsafe_allow_html=True)
+                <span class="status-badge badge-{'safe' if meta['level']=='safe' else 'warning' if meta['level']=='caution' else 'danger'}">
+                    ● {meta['label']}
+                </span>
+                <div class="pred-bar-bg">
+                    <div class="pred-bar-fill" style="width:{conf_pct}%"></div>
+                </div>
+            </div>
+            """, unsafe_allow_html=True)
+
+        st.markdown('<hr style="margin:1rem 0 1.5rem !important; opacity:0.3;">', unsafe_allow_html=True)
 
 
     # ─────────────────────────────────────────
@@ -589,13 +783,11 @@ if st.session_state.show_results and st.session_state.predictions:
     danger_cnt  = sum(1 for p in preds if CLASS_META[p["class"]]["level"] == "critical")
     avg_conf    = round(sum(p["confidence"] for p in preds) / total * 100, 1)
 
-    # Dominant class
     from collections import Counter
     class_counts  = Counter(p["class"] for p in preds)
     dominant_cls  = class_counts.most_common(1)[0][0]
     dominant_meta = CLASS_META[dominant_cls]
 
-    # Overall alert level
     if danger_cnt > 0:
         alert_class = "alert-critical"
         alert_icon  = "🚨"
