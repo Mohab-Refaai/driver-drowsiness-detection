@@ -787,67 +787,69 @@ if st.session_state.show_results and st.session_state.predictions:
     class_counts  = Counter(p["class"] for p in preds)
     dominant_cls  = class_counts.most_common(1)[0][0]
     dominant_meta = CLASS_META[dominant_cls]
+    dom_color     = dominant_meta["color"]
+    dom_icon      = dominant_meta["icon"]
+    dom_label     = dominant_meta["label"]
+    dom_name      = dominant_cls.replace("Driving", "")
 
     if danger_cnt > 0:
         alert_class = "alert-critical"
         alert_icon  = "🚨"
-        alert_msg   = f"CRITICAL ALERT — {danger_cnt} frame(s) show dangerous behaviour. Immediate intervention required."
+        alert_msg   = "CRITICAL ALERT — " + str(danger_cnt) + " frame(s) show dangerous behaviour. Immediate intervention required."
     elif caution_cnt > 0:
         alert_class = "alert-caution"
         alert_icon  = "⚠️"
-        alert_msg   = f"CAUTION — {caution_cnt} frame(s) show distracted or risky behaviour. Monitor closely."
+        alert_msg   = "CAUTION — " + str(caution_cnt) + " frame(s) show distracted or risky behaviour. Monitor closely."
     else:
         alert_class = "alert-safe"
         alert_icon  = "✅"
         alert_msg   = "ALL CLEAR — Driver behaviour appears normal across all analysed frames."
 
-    st.markdown(f"""
+    # ── Dashboard wrapper open + header ──
+    st.markdown("""
     <div class="dashboard-wrap">
         <div class="section-header" style="border-bottom:1px solid rgba(62,207,175,0.15);padding-bottom:0.5rem;">
             <span class="section-dot"></span>
             DRIVER STATUS DASHBOARD
         </div>
-
-        <div class="dash-grid">
-            <div class="dash-metric">
-                <div class="dash-metric-value">{total}</div>
-                <div class="dash-metric-label">Frames Analysed</div>
-                <div class="dash-metric-sub" style="--m-color:#8ecfff">TOTAL</div>
-            </div>
-            <div class="dash-metric">
-                <div class="dash-metric-value" style="color:#3ecfaf;filter:drop-shadow(0 0 15px rgba(62,207,175,0.5))">{safe_count}</div>
-                <div class="dash-metric-label">Safe Frames</div>
-                <div class="dash-metric-sub" style="--m-color:#3ecfaf">SAFE DRIVING</div>
-            </div>
-            <div class="dash-metric">
-                <div class="dash-metric-value" style="color:#ffbe3c;filter:drop-shadow(0 0 15px rgba(255,190,60,0.5))">{caution_cnt}</div>
-                <div class="dash-metric-label">Caution Frames</div>
-                <div class="dash-metric-sub" style="--m-color:#ffbe3c">NEEDS ATTENTION</div>
-            </div>
-            <div class="dash-metric">
-                <div class="dash-metric-value" style="color:#ff4646;filter:drop-shadow(0 0 15px rgba(255,70,70,0.5))">{danger_cnt}</div>
-                <div class="dash-metric-label">Critical Frames</div>
-                <div class="dash-metric-sub" style="--m-color:#ff4646">DANGEROUS</div>
-            </div>
-            <div class="dash-metric">
-                <div class="dash-metric-value">{avg_conf}%</div>
-                <div class="dash-metric-label">Avg Confidence</div>
-                <div class="dash-metric-sub" style="--m-color:#8ecfff">MODEL CERTAINTY</div>
-            </div>
-            <div class="dash-metric">
-                <div class="dash-metric-value" style="font-size:1.6rem;color:{dominant_meta['color']};filter:drop-shadow(0 0 10px {dominant_meta['color']})">{dominant_cls.replace('Driving','')}</div>
-                <div class="dash-metric-label">Dominant State</div>
-                <div class="dash-metric-sub" style="--m-color:{dominant_meta['color']}">{dominant_meta['icon']} {dominant_meta['label']}</div>
-            </div>
-        </div>
-
-        <div class="alert-bar {alert_class}">
-            <span style="font-size:1.4rem">{alert_icon}</span>
-            <span>{alert_msg}</span>
-        </div>
-
     </div>
     """, unsafe_allow_html=True)
+
+    # ── Metric tiles using st.columns (no complex f-string) ──
+    m1, m2, m3, m4, m5, m6 = st.columns(6)
+
+    def metric_html(value, label, sub, color="#8ecfff", big=False):
+        size = "1.6rem" if big else "2.8rem"
+        glow = color.replace("#", "")
+        return f"""
+        <div class="dash-metric">
+            <div class="dash-metric-value" style="font-size:{size};color:{color};
+                 filter:drop-shadow(0 0 15px {color}88)">{value}</div>
+            <div class="dash-metric-label">{label}</div>
+            <div class="dash-metric-sub" style="color:{color}">{sub}</div>
+        </div>"""
+
+    with m1:
+        st.markdown(metric_html(total, "Frames Analysed", "TOTAL", "#8ecfff"), unsafe_allow_html=True)
+    with m2:
+        st.markdown(metric_html(safe_count, "Safe Frames", "SAFE DRIVING", "#3ecfaf"), unsafe_allow_html=True)
+    with m3:
+        st.markdown(metric_html(caution_cnt, "Caution Frames", "NEEDS ATTENTION", "#ffbe3c"), unsafe_allow_html=True)
+    with m4:
+        st.markdown(metric_html(danger_cnt, "Critical Frames", "DANGEROUS", "#ff4646"), unsafe_allow_html=True)
+    with m5:
+        st.markdown(metric_html(str(avg_conf) + "%", "Avg Confidence", "MODEL CERTAINTY", "#8ecfff"), unsafe_allow_html=True)
+    with m6:
+        st.markdown(metric_html(dom_name, "Dominant State", dom_icon + " " + dom_label, dom_color, big=True), unsafe_allow_html=True)
+
+    # ── Alert bar ──
+    st.markdown(
+        '<div class="alert-bar ' + alert_class + '">'
+        '<span style="font-size:1.4rem">' + alert_icon + '</span>'
+        '<span>' + alert_msg + '</span>'
+        '</div>',
+        unsafe_allow_html=True,
+    )
 
 elif not uploaded_files:
     # Empty state
