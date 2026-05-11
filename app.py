@@ -423,24 +423,7 @@ button[title="Remove file"],
     color: #7fffd4 !important;
 }
 
-/* ── SLIDER (Threshold) ── */
-[data-testid="stSlider"] > div > div > div > div {
-    background: linear-gradient(90deg, #3ecfaf, #8ecfff) !important;
-}
-[data-testid="stSlider"] [role="slider"] {
-    background: #3ecfaf !important;
-    border: 2px solid #0d2d24 !important;
-    box-shadow: 0 0 12px rgba(62,207,175,0.6) !important;
-    width: 20px !important;
-    height: 20px !important;
-}
-[data-testid="stSlider"] label {
-    font-family: 'Share Tech Mono', monospace !important;
-    font-size: 0.8rem !important;
-    letter-spacing: 0.15em !important;
-    color: #3ecfaf !important;
-    text-transform: uppercase !important;
-}
+
 
 /* ── SPINNER OVERRIDE ── */
 [data-testid="stSpinner"] > div {
@@ -569,31 +552,33 @@ with st.sidebar:
 
     st.markdown("""
     <div style="height:1px; background:linear-gradient(90deg,transparent,#3ecfaf,transparent); margin:1rem 0;"></div>
-    <div style="font-family:'Share Tech Mono',monospace; font-size:0.7rem; letter-spacing:0.2em; color:#3ecfaf; text-align:center; margin-bottom:0.5rem;">
-        ⚙ DETECTION THRESHOLD
+    <div style="font-family:'Share Tech Mono',monospace; font-size:0.7rem; letter-spacing:0.2em; color:#3ecfaf; text-align:center; margin-bottom:0.75rem;">
+        ⚙ DETECTION THRESHOLDS
+    </div>
+    <div style="font-family:'Share Tech Mono',monospace; font-size:0.6rem; color:#4a6fa5; text-align:center; margin-bottom:0.75rem; letter-spacing:0.1em;">
+        TUNED PER CLASS · MODEL-OPTIMISED
     </div>
     """, unsafe_allow_html=True)
 
-    threshold = st.slider(
-        "Confidence Threshold",
-        min_value=0.10,
-        max_value=0.95,
-        value=0.35,
-        step=0.05,
-        format="%.2f",
-        label_visibility="collapsed",
-    )
-
-    st.markdown(f"""
-    <div style="text-align:center; font-family:'Bebas Neue',sans-serif; font-size:1.6rem;
-                color:#3ecfaf; filter:drop-shadow(0 0 10px rgba(62,207,175,0.5)); margin-top:0.2rem;">
-        {int(threshold*100)}%
-    </div>
-    <div style="font-family:'Share Tech Mono',monospace; font-size:0.6rem; color:#4a6fa5;
-                text-align:center; letter-spacing:0.15em;">
-        MIN CONFIDENCE TO ACCEPT
-    </div>
-    """, unsafe_allow_html=True)
+    threshold_display = [
+        ("⚡", "DangerousDriving", "#ff4646",  "50%"),
+        ("👁",  "Distracted",       "#ffbe3c",  "45%"),
+        ("🥤", "Drinking",          "#ff8c42",  "25%"),
+        ("✅", "SafeDriving",       "#3ecfaf",  "50%"),
+        ("😴", "SleepyDriving",     "#b46fff",  "40%"),
+        ("🥱", "Yawn",              "#ffbe3c",  "35%"),
+    ]
+    for ico, name, color, pct in threshold_display:
+        st.markdown(
+            f'<div style="display:flex;justify-content:space-between;align-items:center;'
+            f'padding:0.3rem 0.5rem;border-radius:6px;margin-bottom:0.3rem;'
+            f'background:rgba(255,255,255,0.02);border:1px solid {color}22;">'
+            f'<span style="font-family:\'Share Tech Mono\',monospace;font-size:0.6rem;color:#8899aa;">{ico} {name}</span>'
+            f'<span style="font-family:\'Bebas Neue\',sans-serif;font-size:1rem;color:{color};'
+            f'filter:drop-shadow(0 0 6px {color}88);">{pct}</span>'
+            f'</div>',
+            unsafe_allow_html=True,
+        )
 
 
 # ─────────────────────────────────────────────
@@ -605,48 +590,63 @@ def load_model():
 
 
 # ─────────────────────────────────────────────
-#  REAL INFERENCE  (uses sidebar threshold)
+#  PER-CLASS THRESHOLDS  (tuned from confusion matrix)
+#  DangerousDriving : 0.50  — very strong performer (462 correct, 4 missed)
+#  Distracted       : 0.45  — solid (204 correct)
+#  Drinking         : 0.25  — weakest class (43 correct) — keep low to avoid missing it
+#  SafeDriving      : 0.50  — strongest class (612 correct)
+#  SleepyDriving    : 0.40  — decent (94 correct)
+#  Yawn             : 0.35  — moderate (54 correct)
 # ─────────────────────────────────────────────
-def run_inference(image: Image.Image, conf_threshold: float = 0.35) -> dict:
-    import numpy as np
+CLASS_THRESHOLDS = {
+    0: 0.50,   # DangerousDriving
+    1: 0.45,   # Distracted
+    2: 0.25,   # Drinking
+    3: 0.50,   # SafeDriving
+    4: 0.40,   # SleepyDriving
+    5: 0.35,   # Yawn
+}
+
+
+# ─────────────────────────────────────────────
+#  REAL INFERENCE  (per-class thresholds, no slider)
+# ─────────────────────────────────────────────
+def run_inference(image: Image.Image) -> dict:
     model = load_model()
 
-    # First try with the user threshold
-    results = model.predict(image, imgsz=640, conf=conf_threshold, verbose=False)
+    # Run at the lowest possible threshold so we get all candidates
+    results = model.predict(image, imgsz=640, conf=0.01, verbose=False)
     boxes = results[0].boxes
 
-    if boxes is not None and len(boxes):
-        confs    = boxes.conf
-        best_idx = int(confs.argmax().item())
-        cls      = int(boxes.cls[best_idx].item())
-        conf     = float(boxes.conf[best_idx].item())
-        # Draw bounding box using YOLO's built-in plot
-        annotated = results[0].plot(
-            line_width=2,
-            font_size=12,
-            labels=True,
-            conf=True,
-        )
-        annotated_pil = Image.fromarray(annotated[..., ::-1])  # BGR→RGB
-        return {"class": CLASS_NAMES[cls], "confidence": conf,
+    if boxes is None or len(boxes) == 0:
+        return {"class": "SafeDriving", "confidence": 0.0,
+                "annotated": image, "below_threshold": True}
+
+    # Filter each box against its own per-class threshold
+    accepted = []
+    for i in range(len(boxes)):
+        cls  = int(boxes.cls[i].item())
+        conf = float(boxes.conf[i].item())
+        if conf >= CLASS_THRESHOLDS.get(cls, 0.40):
+            accepted.append((i, cls, conf))
+
+    if accepted:
+        # Pick the box with the highest confidence among accepted ones
+        best_i, best_cls, best_conf = max(accepted, key=lambda x: x[2])
+        annotated = results[0].plot(line_width=2, font_size=12, labels=True, conf=True)
+        annotated_pil = Image.fromarray(annotated[..., ::-1])
+        return {"class": CLASS_NAMES[best_cls], "confidence": best_conf,
                 "annotated": annotated_pil, "below_threshold": False}
 
-    # Fallback: run with very low threshold to still get best guess
-    results2 = model.predict(image, imgsz=640, conf=0.01, verbose=False)
-    boxes2   = results2[0].boxes
-    if boxes2 is not None and len(boxes2):
-        confs2   = boxes2.conf
-        best_idx2 = int(confs2.argmax().item())
-        cls      = int(boxes2.cls[best_idx2].item())
-        conf     = float(boxes2.conf[best_idx2].item())
-        annotated = results2[0].plot(line_width=2, font_size=12, labels=True, conf=True)
-        annotated_pil = Image.fromarray(annotated[..., ::-1])
-        return {"class": CLASS_NAMES[cls], "confidence": conf,
-                "annotated": annotated_pil, "below_threshold": True}
-
-    # Truly no detection
-    return {"class": "SafeDriving", "confidence": 0.0,
-            "annotated": image, "below_threshold": True}
+    # Nothing passed the per-class threshold — show best guess as low-confidence
+    confs    = boxes.conf
+    best_idx = int(confs.argmax().item())
+    cls      = int(boxes.cls[best_idx].item())
+    conf     = float(boxes.conf[best_idx].item())
+    annotated = results[0].plot(line_width=2, font_size=12, labels=True, conf=True)
+    annotated_pil = Image.fromarray(annotated[..., ::-1])
+    return {"class": CLASS_NAMES[cls], "confidence": conf,
+            "annotated": annotated_pil, "below_threshold": True}
 
 
 # ─────────────────────────────────────────────
@@ -743,7 +743,7 @@ if uploaded_files:
         with st.spinner("Running neural analysis…"):
             for f in uploaded_files:
                 img = Image.open(f).convert("RGB")
-                result = run_inference(img, conf_threshold=threshold)
+                result = run_inference(img)
                 preds.append({
                     "filename": f.name,
                     "image":    img,
