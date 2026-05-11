@@ -609,12 +609,39 @@ CLASS_THRESHOLDS = {
 
 
 # ─────────────────────────────────────────────
-#  REAL INFERENCE  (per-class thresholds, no slider)
+#  REAL INFERENCE  (per-class thresholds, single box only)
 # ─────────────────────────────────────────────
+def _draw_single_box(image: Image.Image, xyxy, cls: int, conf: float) -> Image.Image:
+    """Draw exactly ONE bounding box on the image using cv2."""
+    import cv2
+    img_bgr = cv2.cvtColor(np.array(image), cv2.COLOR_RGB2BGR)
+    x1, y1, x2, y2 = map(int, xyxy)
+
+    BOX_COLORS = {
+        0: (70,  70,  255),   # DangerousDriving — red
+        1: (60,  190, 255),   # Distracted       — amber
+        2: (66,  140, 255),   # Drinking         — orange
+        3: (175, 207, 62),    # SafeDriving       — green
+        4: (255, 111, 180),   # SleepyDriving     — purple
+        5: (60,  190, 255),   # Yawn              — amber
+    }
+    color = BOX_COLORS.get(cls, (200, 200, 200))
+
+    cv2.rectangle(img_bgr, (x1, y1), (x2, y2), color, 2)
+
+    label = f"{CLASS_NAMES[cls]} {conf:.2f}"
+    (tw, th), baseline = cv2.getTextSize(label, cv2.FONT_HERSHEY_SIMPLEX, 0.55, 1)
+    cv2.rectangle(img_bgr, (x1, y1 - th - baseline - 4), (x1 + tw + 4, y1), color, -1)
+    cv2.putText(img_bgr, label, (x1 + 2, y1 - baseline - 2),
+                cv2.FONT_HERSHEY_SIMPLEX, 0.55, (255, 255, 255), 1, cv2.LINE_AA)
+
+    return Image.fromarray(cv2.cvtColor(img_bgr, cv2.COLOR_BGR2RGB))
+
+
 def run_inference(image: Image.Image) -> dict:
     model = load_model()
 
-    # Run at the lowest possible threshold so we get all candidates
+    # Run at the lowest threshold to get all candidates, then filter manually
     results = model.predict(image, imgsz=640, conf=0.01, verbose=False)
     boxes = results[0].boxes
 
@@ -631,20 +658,19 @@ def run_inference(image: Image.Image) -> dict:
             accepted.append((i, cls, conf))
 
     if accepted:
-        # Pick the box with the highest confidence among accepted ones
+        # Keep ONLY the single highest-confidence accepted box
         best_i, best_cls, best_conf = max(accepted, key=lambda x: x[2])
-        annotated = results[0].plot(line_width=2, font_size=12, labels=True, conf=True)
-        annotated_pil = Image.fromarray(annotated[..., ::-1])
+        xyxy = boxes.xyxy[best_i].cpu().numpy()
+        annotated_pil = _draw_single_box(image, xyxy, best_cls, best_conf)
         return {"class": CLASS_NAMES[best_cls], "confidence": best_conf,
                 "annotated": annotated_pil, "below_threshold": False}
 
-    # Nothing passed the per-class threshold — show best guess as low-confidence
-    confs    = boxes.conf
-    best_idx = int(confs.argmax().item())
+    # Nothing passed — show best guess as low-confidence (still single box)
+    best_idx = int(boxes.conf.argmax().item())
     cls      = int(boxes.cls[best_idx].item())
     conf     = float(boxes.conf[best_idx].item())
-    annotated = results[0].plot(line_width=2, font_size=12, labels=True, conf=True)
-    annotated_pil = Image.fromarray(annotated[..., ::-1])
+    xyxy     = boxes.xyxy[best_idx].cpu().numpy()
+    annotated_pil = _draw_single_box(image, xyxy, cls, conf)
     return {"class": CLASS_NAMES[cls], "confidence": conf,
             "annotated": annotated_pil, "below_threshold": True}
 
