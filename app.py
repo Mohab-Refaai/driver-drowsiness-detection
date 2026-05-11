@@ -553,32 +553,21 @@ with st.sidebar:
     st.markdown("""
     <div style="height:1px; background:linear-gradient(90deg,transparent,#3ecfaf,transparent); margin:1rem 0;"></div>
     <div style="font-family:'Share Tech Mono',monospace; font-size:0.7rem; letter-spacing:0.2em; color:#3ecfaf; text-align:center; margin-bottom:0.75rem;">
-        ⚙ DETECTION THRESHOLDS
+        ⚙ CONFIDENCE THRESHOLD
     </div>
-    <div style="font-family:'Share Tech Mono',monospace; font-size:0.6rem; color:#4a6fa5; text-align:center; margin-bottom:0.75rem; letter-spacing:0.1em;">
-        TUNED PER CLASS · MODEL-OPTIMISED
+    <div style="text-align:center; font-family:'Bebas Neue',sans-serif; font-size:2.5rem;
+                color:#3ecfaf; filter:drop-shadow(0 0 10px rgba(62,207,175,0.5));">
+        50%
+    </div>
+    <div style="font-family:'Share Tech Mono',monospace; font-size:0.6rem; color:#4a6fa5;
+                text-align:center; letter-spacing:0.15em; margin-bottom:0.5rem;">
+        FIXED · MODEL-OPTIMISED
+    </div>
+    <div style="font-family:'Share Tech Mono',monospace; font-size:0.6rem; color:#4a6fa5;
+                text-align:center; letter-spacing:0.1em; line-height:1.6;">
+        mAP50 = 0.989 · F1 = 0.977<br>ALL CLASSES ABOVE 0.949 F1
     </div>
     """, unsafe_allow_html=True)
-
-    threshold_display = [
-        ("⚡", "DangerousDriving", "#ff4646",  "50%"),
-        ("👁",  "Distracted",       "#ffbe3c",  "45%"),
-        ("🥤", "Drinking",          "#ff8c42",  "25%"),
-        ("✅", "SafeDriving",       "#3ecfaf",  "50%"),
-        ("😴", "SleepyDriving",     "#b46fff",  "40%"),
-        ("🥱", "Yawn",              "#ffbe3c",  "35%"),
-    ]
-    for ico, name, color, pct in threshold_display:
-        st.markdown(
-            f'<div style="display:flex;justify-content:space-between;align-items:center;'
-            f'padding:0.3rem 0.5rem;border-radius:6px;margin-bottom:0.3rem;'
-            f'background:rgba(255,255,255,0.02);border:1px solid {color}22;">'
-            f'<span style="font-family:\'Share Tech Mono\',monospace;font-size:0.6rem;color:#8899aa;">{ico} {name}</span>'
-            f'<span style="font-family:\'Bebas Neue\',sans-serif;font-size:1rem;color:{color};'
-            f'filter:drop-shadow(0 0 6px {color}88);">{pct}</span>'
-            f'</div>',
-            unsafe_allow_html=True,
-        )
 
 
 # ─────────────────────────────────────────────
@@ -596,20 +585,13 @@ def load_model():
 #  Drinking         : 0.25  — weakest class (43 correct) — keep low to avoid missing it
 #  SafeDriving      : 0.50  — strongest class (612 correct)
 #  SleepyDriving    : 0.40  — decent (94 correct)
-#  Yawn             : 0.35  — moderate (54 correct)
+#  Overall F1 = 0.977 · mAP50 = 0.989 — single threshold is sufficient
 # ─────────────────────────────────────────────
-CLASS_THRESHOLDS = {
-    0: 0.50,   # DangerousDriving
-    1: 0.45,   # Distracted
-    2: 0.25,   # Drinking
-    3: 0.50,   # SafeDriving
-    4: 0.40,   # SleepyDriving
-    5: 0.35,   # Yawn
-}
+CONFIDENCE_THRESHOLD = 0.50
 
 
 # ─────────────────────────────────────────────
-#  REAL INFERENCE  (per-class thresholds, single box only)
+#  REAL INFERENCE  (single threshold, single box only)
 # ─────────────────────────────────────────────
 def _draw_single_box(image: Image.Image, xyxy, cls: int, conf: float) -> Image.Image:
     """Draw exactly ONE bounding box on the image using cv2."""
@@ -621,9 +603,9 @@ def _draw_single_box(image: Image.Image, xyxy, cls: int, conf: float) -> Image.I
         0: (70,  70,  255),   # DangerousDriving — red
         1: (60,  190, 255),   # Distracted       — amber
         2: (66,  140, 255),   # Drinking         — orange
-        3: (175, 207, 62),    # SafeDriving       — green
-        4: (255, 111, 180),   # SleepyDriving     — purple
-        5: (60,  190, 255),   # Yawn              — amber
+        3: (175, 207, 62),    # SafeDriving      — green
+        4: (255, 111, 180),   # SleepyDriving    — purple
+        5: (60,  190, 255),   # Yawn             — amber
     }
     color = BOX_COLORS.get(cls, (200, 200, 200))
 
@@ -641,38 +623,34 @@ def _draw_single_box(image: Image.Image, xyxy, cls: int, conf: float) -> Image.I
 def run_inference(image: Image.Image) -> dict:
     model = load_model()
 
-    # Run at the lowest threshold to get all candidates, then filter manually
-    results = model.predict(image, imgsz=640, conf=0.01, verbose=False)
+    # Run with the fixed threshold — YOLO filters internally
+    results = model.predict(image, imgsz=640, conf=CONFIDENCE_THRESHOLD, verbose=False)
     boxes = results[0].boxes
 
-    if boxes is None or len(boxes) == 0:
-        return {"class": "SafeDriving", "confidence": 0.0,
-                "annotated": image, "below_threshold": True}
-
-    # Filter each box against its own per-class threshold
-    accepted = []
-    for i in range(len(boxes)):
-        cls  = int(boxes.cls[i].item())
-        conf = float(boxes.conf[i].item())
-        if conf >= CLASS_THRESHOLDS.get(cls, 0.40):
-            accepted.append((i, cls, conf))
-
-    if accepted:
-        # Keep ONLY the single highest-confidence accepted box
-        best_i, best_cls, best_conf = max(accepted, key=lambda x: x[2])
-        xyxy = boxes.xyxy[best_i].cpu().numpy()
-        annotated_pil = _draw_single_box(image, xyxy, best_cls, best_conf)
-        return {"class": CLASS_NAMES[best_cls], "confidence": best_conf,
+    if boxes is not None and len(boxes):
+        # Pick the single highest-confidence box
+        best_idx = int(boxes.conf.argmax().item())
+        cls      = int(boxes.cls[best_idx].item())
+        conf     = float(boxes.conf[best_idx].item())
+        xyxy     = boxes.xyxy[best_idx].cpu().numpy()
+        annotated_pil = _draw_single_box(image, xyxy, cls, conf)
+        return {"class": CLASS_NAMES[cls], "confidence": conf,
                 "annotated": annotated_pil, "below_threshold": False}
 
-    # Nothing passed — show best guess as low-confidence (still single box)
-    best_idx = int(boxes.conf.argmax().item())
-    cls      = int(boxes.cls[best_idx].item())
-    conf     = float(boxes.conf[best_idx].item())
-    xyxy     = boxes.xyxy[best_idx].cpu().numpy()
-    annotated_pil = _draw_single_box(image, xyxy, cls, conf)
-    return {"class": CLASS_NAMES[cls], "confidence": conf,
-            "annotated": annotated_pil, "below_threshold": True}
+    # Nothing passed threshold — fallback to best guess at low conf
+    results2 = model.predict(image, imgsz=640, conf=0.01, verbose=False)
+    boxes2   = results2[0].boxes
+    if boxes2 is not None and len(boxes2):
+        best_idx = int(boxes2.conf.argmax().item())
+        cls      = int(boxes2.cls[best_idx].item())
+        conf     = float(boxes2.conf[best_idx].item())
+        xyxy     = boxes2.xyxy[best_idx].cpu().numpy()
+        annotated_pil = _draw_single_box(image, xyxy, cls, conf)
+        return {"class": CLASS_NAMES[cls], "confidence": conf,
+                "annotated": annotated_pil, "below_threshold": True}
+
+    return {"class": "SafeDriving", "confidence": 0.0,
+            "annotated": image, "below_threshold": True}
 
 
 # ─────────────────────────────────────────────
