@@ -2,10 +2,11 @@
 
 > Real-time driver behavior classification using **YOLO11s** — detecting 6 dangerous and safe driving states from a camera feed.
 
-![Python](https://img.shields.io/badge/Python-3.8+-blue?style=flat-square&logo=python)
+![Python](https://img.shields.io/badge/Python-3.12-blue?style=flat-square&logo=python)
 ![YOLO](https://img.shields.io/badge/YOLO-11s-purple?style=flat-square)
-![Ultralytics](https://img.shields.io/badge/Ultralytics-latest-orange?style=flat-square)
-![License](https://img.shields.io/badge/License-MIT-green?style=flat-square)
+![mAP50](https://img.shields.io/badge/mAP50-98.9%25-brightgreen?style=flat-square)
+![F1](https://img.shields.io/badge/F1-97.7%25-brightgreen?style=flat-square)
+![GPU](https://img.shields.io/badge/GPU-Tesla%20T4-orange?style=flat-square)
 
 ---
 
@@ -28,22 +29,49 @@ This project trains and deploys a **YOLO11s** object detection model to classify
 
 ---
 
+## 📊 Results
+
+### Overall Metrics (Test Set)
+
+| Metric | Value |
+|--------|-------|
+| **mAP50** | **98.9%** |
+| **mAP50-95** | **87.3%** |
+| **Precision** | **97.5%** |
+| **Recall** | **97.9%** |
+| **F1 Score** | **97.7%** |
+
+### Per-Class Results (Test Set)
+
+| Class | Precision | Recall | F1 | mAP50 | mAP50-95 |
+|-------|-----------|--------|----|-------|----------|
+| DangerousDriving | 99.7% | 99.6% | 99.7% | 99.5% | 89.8% |
+| Distracted | 97.9% | 95.2% | 96.5% | 99.0% | 85.8% |
+| Drinking | 95.3% | 100.0% | 97.6% | 99.2% | 80.9% |
+| SafeDriving | 98.9% | 99.7% | 99.3% | 99.4% | 88.4% |
+| SleepyDriving | 95.0% | 94.9% | 94.9% | 98.0% | 90.4% |
+| Yawn | 98.1% | 98.2% | 98.1% | 98.2% | 88.8% |
+
+> **Inference Speed:** ~5.6ms per image on Tesla T4 GPU
+
+---
+
 ## 🛠️ Pipeline
 
 ```
-Dataset Download → EDA & Cleaning → Visual Inspection
+Dataset Download (14,855 images)
        ↓
-Stratified 80/10/10 Re-split
+EDA & Data Cleaning (removed 4 corrupted samples)
+       ↓
+Stratified 80 / 10 / 10 Re-split
        ↓
 YOLO Format Conversion
        ↓
-Offline Augmentation (Minority Classes)
+Offline Augmentation (+300 samples for minority classes)
        ↓
-YOLO11s Training (50 epochs)
+YOLO11s Training (50 epochs, Tesla T4)
        ↓
-Evaluation: mAP, Precision, Recall, F1
-       ↓
-Error Analysis (FP / FN Visualization)
+Evaluation: mAP50 = 98.9%, F1 = 97.7%
 ```
 
 ---
@@ -79,8 +107,6 @@ pip install -r requirements.txt
 python app.py
 ```
 
-The app will load `best.pt` and run inference. You can pass a video file, webcam index, or image path depending on the script configuration.
-
 ---
 
 ## 🏋️ Training Details
@@ -88,39 +114,41 @@ The app will load `best.pt` and run inference. You can pass a video file, webcam
 | Parameter | Value |
 |-----------|-------|
 | Model | YOLO11s |
+| Pretrained | ✅ (yolo11s.pt) |
 | Epochs | 50 |
 | Image Size | 640 × 640 |
 | Batch Size | 16 |
 | Optimizer | AdamW (auto) |
 | Early Stopping | patience = 10 |
-| Augmentation | Mosaic, HFlip, HSV, Rotation |
+| GPU | Tesla T4 |
+| Framework | Ultralytics 8.4.47 |
+| Parameters | 9,430,114 |
+
+### Augmentation
+
+**Online (YOLO):** HSV shift, horizontal flip, mosaic, rotation ±10°
+
+**Offline (minority classes only):** +300 samples each for `Drinking`, `SleepyDriving`, `Yawn` using horizontal flip, brightness/contrast, and rotation ±15°
 
 ### Dataset Split
 
-| Split | Ratio |
-|-------|-------|
-| Train | 80% |
-| Validation | 10% |
-| Test | 10% |
+| Split | Images | After Augmentation |
+|-------|--------|--------------------|
+| Train | 11,884 | 12,784 |
+| Validation | 1,485 | 1,485 |
+| Test | 1,486 | 1,486 |
+| **Total** | **14,855** | **15,755** |
 
-Stratified splitting was applied to preserve class distribution across all splits.
+### Class Distribution (Train)
 
-### Offline Augmentation
-
-Minority classes (`Drinking`, `SleepyDriving`, `Yawn`) were augmented with **+300 samples each** using:
-- Horizontal Flip
-- Random Brightness & Contrast
-- Rotation (±15°)
-
----
-
-## 📊 Evaluation Metrics
-
-The model is evaluated on the test set using:
-
-- **mAP50** — mean Average Precision @ IoU 0.50
-- **mAP50-95** — mean Average Precision @ IoU 0.50–0.95
-- **Precision / Recall / F1** — per class and overall
+| Class | Original | After Augmentation |
+|-------|----------|--------------------|
+| DangerousDriving | 3,714 | 3,714 |
+| Distracted | 1,664 | 1,664 |
+| Drinking | 342 | 642 |
+| SafeDriving | 4,944 | 4,944 |
+| SleepyDriving | 783 | 1,083 |
+| Yawn | 437 | 737 |
 
 ---
 
@@ -137,12 +165,6 @@ matplotlib
 Pillow
 PyYAML
 ```
-
----
-
-## 👤 Author
-
-**Mohab Hossam** — [@Mohab-Refaai](https://github.com/Mohab-Refaai)
 
 ---
 
